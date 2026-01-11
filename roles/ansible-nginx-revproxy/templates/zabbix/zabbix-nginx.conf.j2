@@ -1,0 +1,6 @@
+# Nginx Status Monitoring
+UserParameter=nginx.status[*],/usr/bin/curl -s http://127.0.0.1:8080/nginx_status | grep -i "$1" | awk '{print $NF}'
+
+# Nginx Log Discovery
+UserParameter=nginx.log.discovery, /etc/zabbix/scripts/nginx_discovery.sh
+UserParameter=nginx.error.discovery, /etc/zabbix/scripts/nginx_error_discovery.sh

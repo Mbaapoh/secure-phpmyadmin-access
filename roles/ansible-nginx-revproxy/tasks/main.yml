@@ -1,0 +1,397 @@
+---
+
+# --- Initial Setup and Fact Initialization ---
+- name: "Get current epoch time (start)"
+  ansible.builtin.command: date +%s
+  register: _role_start_time_cmd_result
+  changed_when: false
+  check_mode: false
+  tags: always
+
+- name: "Set Role Start Time Fact"
+  ansible.builtin.set_fact:
+    role_start_time_epoch: "{{ _role_start_time_cmd_result.stdout | int }}"
+  tags: always
+
+- name: Install Nginx and ssl-cert
+  apt:
+    name:
+      - nginx
+      - nginx-extras
+      - ssl-cert
+    state: present
+  register:
+    nginxinstalled
+  delay: 10
+  retries: 12
+  until: nginxinstalled is successful
+  tags:
+    - nginxrevproxy
+    - packages
+
+- name: Install python-passlib for Python 3 hosts
+  apt:
+    name:
+      - "python3-passlib"
+    state: present
+  register:
+    result
+  delay: 10
+  retries: 12
+  until: result is successful
+  tags:
+    - nginxrevproxy
+    - packages
+  when:
+    - ansible_python['version']['major'] == 3
+
+- name: Install python-passlib for Python 2 hosts
+  apt:
+    name:
+      - "python-passlib"
+    state: present
+  register:
+    result
+  delay: 10
+  retries: 12
+  until: result is successful
+  tags:
+    - nginxrevproxy
+    - packages
+  when:
+    - ansible_python['version']['major'] == 2
+
+- name: Set up nginx directories
+  file:
+    path: "/etc/nginx/{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: 0640
+  with_items:
+    - sites-available
+    - sites-enabled
+  tags:
+    - nginxrevproxy
+
+- name: Add authentication
+  htpasswd:
+    path: "/etc/nginx/{{ item.key | replace('.', '_') }}_htpasswd"  
+    name: "{{ item.value.auth.login }}"
+    password: "{{ item.value.auth.password }}"
+    owner: root
+    group: www-data
+    mode: 0640
+  with_dict: "{{ nginx_revproxy_sites }}"
+  when:
+    - nginxinstalled is success
+    - item.value.auth is defined
+  tags:
+    - nginxrevproxy
+    
+- name: "Deploy hardened proxy parameters snippet"
+  ansible.builtin.template:
+    src: snippets/hardened_proxy.conf.j2
+    dest: "/etc/nginx/{{ nginx_proxy_params_file | default('snippets/hardened_proxy.conf') }}"
+    owner: root
+    group: root
+    mode: '0644'
+  register: proxy_params_snippet_result
+  tags: nginxrevproxy
+
+- name: Inject nginx config
+  template:
+    src: nginx.conf.j2
+    dest: /etc/nginx/nginx.conf
+    owner: root
+    group: root
+    mode: 0640
+  tags:
+    - nginxrevproxy
+    - packages
+    
+- name: Add Site Config
+  template:
+    src: reverseproxy.conf.j2
+    dest: /etc/nginx/sites-available/{{ item.key }}.conf
+    owner: root
+    group: root
+    mode: 0640
+  with_dict: "{{ nginx_revproxy_sites }}"
+  register:
+    siteconfig
+  when:
+    - nginxinstalled is success
+    - not item.value.ssl | default(True)
+    - not item.value.letsencrypt | default(True)
+  tags:
+    - nginxrevproxy
+
+- name: Add Https Site Config
+  template:
+    src: reverseproxy_ssl.conf.j2
+    dest: /etc/nginx/sites-available/{{ item.key }}.conf
+    owner: root
+    group: root
+    mode: 0640
+  with_dict: "{{ nginx_revproxy_sites }}"
+  register:
+    siteconfig
+  when:
+    - nginxinstalled is success
+    - item.value.ssl | default(False)
+    - not item.value.letsencrypt | default(True)
+  tags:
+    - nginxrevproxy
+
+- name: Get Active Sites
+  command: ls -1 /etc/nginx/sites-enabled/
+  changed_when: "active.stdout_lines != nginx_revproxy_sites.keys()|sort()"
+  check_mode: false
+  register: active
+  tags:
+    - nginxrevproxy
+
+- name: De-activate Sites
+  file:
+    path: /etc/nginx/sites-enabled/{{ item }}
+    state: absent
+  with_items: "{{ active.stdout_lines }}"
+  notify: Reload Nginx
+  when:
+    - item not in nginx_revproxy_sites
+    - nginx_revproxy_de_activate_sites
+  tags:
+    - nginxrevproxy
+
+
+
+- name: Ensure Zabbix scripts directory exists
+  file:
+    path: /etc/zabbix/scripts
+    state: directory
+    owner: root
+    group: root
+    mode: 0755
+  tags:
+    - nginxrevproxy
+    - zabbix
+
+- name: Deploy Zabbix Nginx discovery scripts
+  copy:
+    src: "zabbix/{{ item }}"
+    dest: "/etc/zabbix/scripts/{{ item }}"
+    owner: root
+    group: root
+    mode: 0755
+  with_items:
+    - nginx_discovery.sh
+    - nginx_error_discovery.sh
+  tags:
+    - nginxrevproxy
+    - zabbix
+
+- name: Deploy Zabbix Agent config for Nginx (Status & Logs)
+  template:
+    src: zabbix/zabbix-nginx.conf.j2
+    dest: /etc/zabbix/zabbix_agent2.d/zabbix-nginx.conf
+    owner: root
+    group: root
+    mode: 0644
+  notify: Restart Zabbix Agent
+  tags:
+    - nginxrevproxy
+    - zabbix
+
+- name: Remove legacy Zabbix Agent configs
+  file:
+    path: "/etc/zabbix/zabbix_agent2.d/{{ item }}"
+    state: absent
+  with_items:
+    - nginx_log_discovery.conf
+    - nginx_status.conf
+  notify: Restart Zabbix Agent
+  tags:
+    - nginxrevproxy
+    - zabbix
+
+- name: Enable Site Config
+  file:
+    src: /etc/nginx/sites-available/{{ item.key }}.conf
+    dest: /etc/nginx/sites-enabled/{{ item.key }}
+    state: link
+  with_dict: "{{ nginx_revproxy_sites }}"
+  notify: Reload Nginx
+  when:
+    - siteconfig is success
+    - not item.value.letsencrypt | default(True)
+    - not ansible_check_mode
+  tags:
+    - nginxrevproxy
+
+- name: Add Zabbix Status Config
+  template:
+    src: zabbix_status.conf.j2
+    dest: /etc/nginx/conf.d/01-zabbix-status.conf
+    owner: root
+    group: root
+    mode: 0640
+  notify: Reload Nginx
+  tags:
+    - nginxrevproxy
+
+- name: Remove legacy Zabbix Status symlink
+  file:
+    path: /etc/nginx/sites-enabled/zabbix_status
+    state: absent
+  notify: Reload Nginx
+  tags:
+    - nginxrevproxy
+
+- name: Add Default Catch-all Config
+  template:
+    src: default_catchall.conf.j2
+    dest: /etc/nginx/conf.d/00-default-catchall.conf
+    owner: root
+    group: root
+    mode: 0640
+  when: "'default' not in nginx_revproxy_sites"
+  notify: Reload Nginx
+  tags:
+    - nginxrevproxy
+
+- name: Remove legacy Default Catch-all symlink
+  file:
+    path: /etc/nginx/sites-enabled/default_catchall
+    state: absent
+  notify: Reload Nginx
+  tags:
+    - nginxrevproxy
+
+- name: Create WebRoot sites
+  file:
+    dest: /var/www/{{ item.key }}/.well-known
+    mode: 0775
+    state: directory
+    owner: www-data
+    group: www-data
+  with_dict: "{{ nginx_revproxy_sites }}"
+  notify: Reload Nginx
+  when:
+    - nginxinstalled is success
+  tags:
+    - nginxrevproxy
+
+- name: WebRoot Permissions Sites
+  file:
+    dest: /var/www/{{ item.key }}
+    mode: 0775
+    state: directory
+    owner: www-data
+    group: www-data
+    recurse: true
+  with_dict: "{{ nginx_revproxy_sites }}"
+  notify: Reload Nginx
+  when:
+    - nginxinstalled is success
+  tags:
+    - nginxrevproxy
+
+- name: Get WebRoot Sites
+  command: ls -1 /var/www/
+  changed_when: "webroot.stdout_lines != nginx_revproxy_sites.keys()|sort()"
+  check_mode: false
+  register: webroot
+  tags:
+    - nginxrevproxy
+
+- name: Remove WebRoot Sites
+  file:
+    path: /var/www/{{ item }}/
+    state: absent
+  with_items: "{{ webroot.stdout_lines }}"
+  notify: Reload Nginx
+  when:
+    - item not in nginx_revproxy_sites
+    - nginx_revproxy_remove_webroot_sites
+  tags:
+    - nginxrevproxy
+
+- include_tasks: letsencrypt.yml
+  tags:
+    - lesencrypt
+    - nginxrevproxy
+
+# ---  tasks for nginx -t ---
+- name: Finale Validation of Nginx configuration 
+  ansible.builtin.command: nginx -t
+  register: nginx_config_test_main
+  changed_when: false 
+  failed_when: nginx_config_test_main.rc != 0 
+  tags:
+    - nginxrevproxy
+    - nginx_validate
+
+- name: Display Nginx configuration test results
+  ansible.builtin.debug:
+    msg: |
+      NGINX configuration test (nginx -t) STDOUT:
+      {{ nginx_config_test_main.stdout | indent(2) }}
+
+      NGINX configuration test (nginx -t) STDERR:
+      {{ nginx_config_test_main.stderr | indent(2) }}
+  tags:
+    - nginxrevproxy
+    - nginx_validate
+
+# ---  TASK TO SEND THE NOTIFICATION ---
+- name: Ensure Nginx reload is notified if config test OK
+  ansible.builtin.command: /bin/true # A simple command that does nothing and always succeeds
+  changed_when: true               
+  notify: Reload Nginx             
+  when: nginx_config_test_main.rc == 0
+  tags:
+    - nginxrevproxy
+    - nginx_validate
+
+- name: Trigger force restart of Nginx if requested
+  ansible.builtin.command: /bin/true
+  changed_when: nginx_force_restart | default(false)
+  notify: Restart Nginx
+  when: nginx_force_restart | default(false)
+  tags:
+    - nginxrevproxy
+    - nginx_force_restart
+
+# --- Role Execution Timing ---
+- name: "Get current epoch time (end)"
+  ansible.builtin.command: date +%s
+  register: _role_end_time_cmd_result
+  changed_when: false
+  check_mode: false
+  tags: always
+
+- name: "Set Role End Time Fact"
+  ansible.builtin.set_fact:
+    role_end_time_epoch: "{{ _role_end_time_cmd_result.stdout | int }}"
+  tags: always
+
+- name: "Calculate Role Execution Duration"
+  ansible.builtin.set_fact:
+    role_execution_duration_seconds: "{{ (role_end_time_epoch | default(0) | int) - (role_start_time_epoch | default(0) | int) }}"
+  when:
+    - role_start_time_epoch is defined
+    - role_end_time_epoch is defined
+  tags: always
+
+- name: "Format and Display Role Execution Time"
+  ansible.builtin.debug:
+    msg: |
+      Role 'ansible-nginx-revproxy' Execution Time for {{ inventory_hostname }}: {{ '%02d' | format(calculated_hours | int) }}h {{ '%02d' | format(calculated_minutes | int) }}m {{ '%02d' | format(calculated_seconds | int) }}s
+      (Total {{ role_execution_duration_seconds | default("0") }} seconds)
+  vars:
+    calculated_hours: "{{ (role_execution_duration_seconds | default(0) | int) // 3600 }}"
+    calculated_minutes: "{{ ((role_execution_duration_seconds | default(0) | int) % 3600) // 60 }}"
+    calculated_seconds: "{{ (role_execution_duration_seconds | default(0) | int) % 60 }}"
+  when: role_execution_duration_seconds is defined
+  tags: always

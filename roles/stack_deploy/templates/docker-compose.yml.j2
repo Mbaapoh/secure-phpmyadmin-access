@@ -1,0 +1,127 @@
+services:
+  # --- Database for Keycloak ---
+  postgres:
+    image: postgres:15
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: {{ postgres_user | default('keycloak') }}
+      POSTGRES_PASSWORD: {{ postgres_password | default('password') }}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {{ postgres_user | default('keycloak') }}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - secure_net
+    restart: always
+
+  # --- Identity Provider ---
+  keycloak:
+    image: quay.io/keycloak/keycloak:{{ keycloak_version }}
+    # Use 'start' for production. 'start-dev' is insecure and binds 0.0.0.0 insecurely.
+    # We remove --optimized because we are not running a build step. Keycloak will auto-build if needed.
+    command: start --http-enabled=true --hostname-strict=false
+    environment:
+      # Database Configuration
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: {{ postgres_user | default('keycloak') }}
+      KC_DB_PASSWORD: {{ postgres_password | default('password') }}
+      
+      # Bootstrap Admin (KC 26+)
+      KC_BOOTSTRAP_ADMIN_USERNAME: {{ keycloak_admin_user }}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: {{ keycloak_admin_password }}
+      
+      # Hostname & Proxy Configuration
+      KC_PROXY_HEADERS: "xforwarded" 
+      # In production behind Nginx/Traefik, we trust headers.
+      KC_HOSTNAME: https://{{ auth_url }}
+      # We explicitly set https scheme for hostname to match external URL
+      
+      # Health Checks
+      KC_HEALTH_ENABLED: "true"
+      KC_METRICS_ENABLED: "true"
+    ports:
+      - "127.0.0.1:8080:8080" # Exposed to Host for Nginx Proxy
+    healthcheck:
+      # Check /health/started (Lifecycle) or /health/ready (Readiness).
+      # Using /health/ready ensures DB is connected and migration done.
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200 OK'"]
+      interval: 10s
+      timeout: 5s
+      retries: 30       # 30 * 10s = 5 minutes tolerance for slow DB migrations
+      start_period: 60s # Grace period for JVM startup
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - secure_net
+    extra_hosts:
+      - "{{ auth_url }}:host-gateway"
+      - "{{ pma_url }}:host-gateway"
+    restart: always
+
+  # --- Application Database ---
+  mariadb:
+    image: mariadb:{{ mariadb_version }}
+    environment:
+      MYSQL_ROOT_PASSWORD: {{ mysql_root_password }}
+    volumes:
+      - mariadb_data:/var/lib/mysql
+    networks:
+      - secure_net
+    restart: always
+
+  # --- Secure App (Not Exposed) ---
+  phpmyadmin:
+    image: phpmyadmin:{{ pma_version }}
+    environment:
+      PMA_HOST: mariadb
+      PMA_ARBITRARY: 1
+      PMA_ABSOLUTE_URI: https://{{ pma_url }}/
+    depends_on:
+      - mariadb
+    networks:
+      - secure_net
+    restart: always
+
+  # --- Auth Proxy ---
+  oauth2-proxy:
+    image: quay.io/oauth2-proxy/oauth2-proxy:{{ oauth2_proxy_version }}
+    command: --http-address=0.0.0.0:4180 --upstream=http://phpmyadmin:80
+    environment:
+      OAUTH2_PROXY_PROVIDER: keycloak-oidc
+      OAUTH2_PROXY_CLIENT_ID: {{ keycloak_client_id }}
+      OAUTH2_PROXY_CLIENT_SECRET: {{ oidc_client_secret }}
+      OAUTH2_PROXY_COOKIE_SECRET: {{ oauth2_cookie_secret }}
+      OAUTH2_PROXY_CODE_CHALLENGE_METHOD: "S256"
+      OAUTH2_PROXY_OIDC_ISSUER_URL: https://{{ auth_url }}/realms/{{ keycloak_realm }} 
+      OAUTH2_PROXY_EMAIL_DOMAINS: "*"
+      OAUTH2_PROXY_REDIRECT_URL: https://{{ pma_url }}/oauth2/callback
+      OAUTH2_PROXY_SSL_INSECURE_SKIP_VERIFY: "true" 
+      # Required because Nginx/Certbot might not have valid certs during first boot.
+      # In true strict prod, you mount the CA.
+    depends_on:
+      # RELAXED DEPENDENCY: Start even if Keycloak is still migrating DB.
+      # OAuth2-Proxy will retry connection indefinitely, avoiding orchestrator deadlock.
+      keycloak:
+        condition: service_started 
+    networks:
+      - secure_net
+    extra_hosts:
+      - "{{ auth_url }}:host-gateway"
+      - "{{ pma_url }}:host-gateway"
+    restart: always
+
+    ports:
+      - "127.0.0.1:4180:4180" # Exposed to Host for Nginx Proxy
+
+volumes:
+  postgres_data:
+  mariadb_data:
+
+networks:
+  secure_net:
+    driver: bridge

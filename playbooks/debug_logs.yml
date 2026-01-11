@@ -1,0 +1,18 @@
+- hosts: all
+  become: true
+  tasks:
+    - name: Get Keycloak Logs
+      command: docker logs --tail 100 devops-pma-secure-keycloak-1
+      register: logs
+      failed_when: false # Don't fail if container missing
+
+    - debug:
+        var: logs.stdout_lines
+        
+    - name: Get Postgres Logs
+      command: docker logs --tail 50 devops-pma-secure-postgres-1
+      register: pg_logs
+      failed_when: false
+
+    - debug:
+        var: pg_logs.stdout_lines

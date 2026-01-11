@@ -1,0 +1,134 @@
+---
+- name: Install certbot-auto
+  ansible.builtin.get_url:
+    url: https://dl.eff.org/certbot-auto
+    dest: /usr/bin/certbot-auto
+    mode: "a+x"
+  when: nginx_revproxy_certbot_auto
+  tags:
+    - lesencrypt
+    - nginxrevproxy
+
+- name: Install certbot from repository
+  ansible.builtin.apt:
+    name: "{{ nginx_revproxy_certbot_packages }}"
+    state: present
+  when: not nginx_revproxy_certbot_auto
+  tags:
+    - lesencrypt
+    - nginxrevproxy
+
+- name: Ensure strong Diffie-Hellman parameters are generated
+  ansible.builtin.command: openssl dhparam -out /etc/ssl/certs/dhparam.pem 2048
+  args:
+    creates: /etc/ssl/certs/dhparam.pem
+  tags:
+    - nginxrevproxy
+    - ssl
+
+- name: Get Active Sites
+  ansible.builtin.command: ls -1 /etc/nginx/sites-enabled/
+  changed_when: "active.stdout_lines != nginx_revproxy_sites.keys()|sort()"
+  check_mode: false
+  register: active
+  tags:
+    - lesencrypt
+    - nginxrevproxy
+
+- name: Enable sites for ACME protocol
+  block:
+    - name: Add Https Site Config for ACME (temporary with snakeoil)
+      ansible.builtin.template:
+        src: reverseproxy_ssl.conf.j2
+        dest: /etc/nginx/sites-available/{{ item.key }}.conf
+        owner: root
+        group: root
+        mode: 0640
+      with_dict: "{{ nginx_revproxy_sites }}"
+      vars:
+        __skip_letsencrypt: true  # use snakeoil cert on first run
+      register: siteconfig_acme
+      when:
+        - item.value.letsencrypt | default(False)
+        - item.key not in active.stdout_lines
+
+    - name: Enable Site Config for ACME
+      ansible.builtin.file:
+        src: /etc/nginx/sites-available/{{ item.key }}.conf
+        dest: /etc/nginx/sites-enabled/{{ item.key }}
+        state: link
+      with_dict: "{{ nginx_revproxy_sites }}"
+      register: site_enabled_acme 
+      notify: Reload Nginx       
+      when:
+        - item.value.letsencrypt | default(False)
+        - item.key not in active.stdout_lines
+        - siteconfig_acme.results | selectattr('item.key', 'equalto', item.key) | selectattr('failed', 'false') | list | length > 0
+        - not ansible_check_mode
+  when:
+    - active.changed
+    - nginxinstalled is success
+  tags:
+    - lesencrypt
+    - nginxrevproxy
+
+# Explicit Nginx reload before issuing certs to ensure ACME server block is live
+- name: Test nginx config before reload
+  ansible.builtin.command: nginx -t
+  register: nginx_config_test_result
+  failed_when: nginx_config_test_result.rc != 0
+  changed_when: false
+  tags:
+    - lesencrypt
+    - nginxrevproxy
+
+- name: Reload nginx to activate ACME snakeoil config
+  ansible.builtin.service:
+    name: nginx
+    state: reloaded
+  when: nginx_config_test_result.rc == 0
+  tags:
+    - lesencrypt
+    - nginxrevproxy
+
+- name: Generate certs (first time)
+  ansible.builtin.command: >-
+    certbot{{ '-auto' if nginx_revproxy_certbot_auto else '' }} certonly
+    --webroot -w /var/www/{{ item.key }}
+    -d {{ item.value.domains | join(' -d ') }}
+    --email {{ item.value.letsencrypt_email }}
+    --non-interactive --cert-name {{ item.key }}
+    --agree-tos --keep-until-expiring 
+  args:
+    creates: /etc/letsencrypt/live/{{ item.key }}/fullchain.pem
+  with_dict: "{{ nginx_revproxy_sites }}"
+  when: item.value.letsencrypt | default(False)
+  tags:
+    - lesencrypt
+    - nginxrevproxy
+
+- name: Update Site Config to use Let's Encrypt certs
+  ansible.builtin.template:
+    src: reverseproxy_ssl.conf.j2
+    dest: /etc/nginx/sites-available/{{ item.key }}.conf
+    owner: root
+    group: root
+    mode: 0640
+  with_dict: "{{ nginx_revproxy_sites }}"
+  notify: Reload Nginx 
+  when:
+    - item.value.letsencrypt | default(False)
+  tags:
+    - lesencrypt
+    - nginxrevproxy
+
+- name: Insert cert-bot renew in crontab
+  ansible.builtin.cron:
+    name: "cert-bot renew"
+    job: "certbot{{ '-auto' if nginx_revproxy_certbot_auto else '' }} renew --post-hook \"systemctl reload nginx\" >> /var/log/letsencrypt/letsencrypt-update.log 2>&1"
+    hour: "3"
+    minute: "30"
+    weekday: "1"
+  tags:
+    - lesencrypt
+    - nginxrevproxy

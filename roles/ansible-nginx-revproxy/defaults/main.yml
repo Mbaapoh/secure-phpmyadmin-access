@@ -1,0 +1,63 @@
+# Filename: roles/nginx/defaults/main.yml
+#
+# Default variables for the Nginx role, optimized for production environment.
+# These settings are tuned to prevent buffering and 504 timeout errors.
+
+# --- Role Behavior Flags ---
+nginx_force_restart: false
+
+# --- Certbot Settings ---
+nginx_revproxy_certbot_auto: false # Set true to use deprecated certbot-auto
+nginx_revproxy_certbot_packages: ['certbot', 'python3-certbot-nginx']
+
+# --- Site Management Flags ---
+nginx_revproxy_remove_webroot_sites: true  
+nginx_revproxy_de_activate_sites: true
+
+# --- Firewall Configuration ---
+nginx_revproxy_configure_firewall: true
+
+# --- Global Nginx Settings - Optimized for 2vCPU/4GB RAM ---
+nginx_worker_processes: 2  #Optimized for 2vCPU
+nginx_worker_connections: 2048
+nginx_worker_rlimit_nofile: 32768
+nginx_keepalive_timeout: 65
+nginx_keepalive_requests: 1000
+nginx_types_hash_max_size: 2048
+nginx_server_names_hash_bucket_size: 128
+nginx_server_tokens: 'off'
+nginx_server_name_in_redirect: 'off'
+
+# --- Gzip Settings ---
+nginx_gzip_comp_level: 5
+nginx_gzip_min_length: 256
+
+# --- Client Buffers & Limits - Optimized to Prevent Buffering ---
+nginx_client_body_buffer_size: "4M"
+nginx_client_header_buffer_size: "2k"
+nginx_client_max_body_size: "100M"
+nginx_large_client_header_buffers_number: 4
+nginx_large_client_header_buffers_size: "8k"
+
+# --- Proxy Buffers & Timeouts - Optimized to Prevent Buffering & 504s ---
+nginx_proxy_buffer_size: "512k"
+nginx_proxy_buffers_count: 16
+nginx_proxy_buffers_size_each: "1M"   # Provides an 8MB memory buffer
+nginx_proxy_busy_buffers_size: "1M"
+nginx_proxy_temp_file_write_size: "2M"
+nginx_proxy_read_timeout: 600
+nginx_proxy_connect_timeout: 600
+nginx_proxy_send_timeout: 600
+nginx_send_timeout: 600
+
+# --- FastCGI Timeouts (for consistency if ever used) ---
+nginx_fastcgi_read_timeout: 600
+
+
+# Rate Limiting
+rate_limit_req_enabled: false
+rate_limit_conn_enabled: false
+
+# --- Sites Definition ---
+# This is typically overridden in group_vars/host_vars with your actual site data.
+nginx_revproxy_sites: {}

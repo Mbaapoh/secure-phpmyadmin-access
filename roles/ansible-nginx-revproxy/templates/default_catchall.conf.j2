@@ -1,0 +1,11 @@
+# Drop any request that does not match a specific server_name
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+
+    # Underscore is a wildcard for "any hostname"
+    server_name _;
+
+    # OPTION B: Return 404 Not Found (Better for debugging)
+    return 404 "Site not configured on this server.\n";
+}

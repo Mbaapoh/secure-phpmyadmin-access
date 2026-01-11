@@ -1,0 +1,60 @@
+# /etc/nginx/snippets/hardened_proxy.conf
+
+# 0. ESSENTIAL HEADERS (Required for Virtual Hosts)
+proxy_set_header Host $http_host;
+
+# 1. CONNECTION & PERFORMANCE
+proxy_http_version 1.1;
+# WebSocket Support (Preserves Upgrade header if present, otherwise clears Connection)
+proxy_set_header Upgrade $http_upgrade;
+proxy_set_header Connection $connection_upgrade; # Relies on map block in nginx.conf.j2
+
+# Buffering (Optimized to prevent buffering to disk)
+proxy_request_buffering on;
+proxy_buffering on;
+proxy_buffer_size        {{ nginx_proxy_buffer_size | default("128k") }};
+proxy_buffers            {{ nginx_proxy_buffers_count | default(16) }} {{ nginx_proxy_buffers_size_each | default("512k") }};
+proxy_busy_buffers_size  {{ nginx_proxy_busy_buffers_size | default("512k") }};
+proxy_temp_file_write_size {{ nginx_proxy_temp_file_write_size | default("2m") }};
+
+# Timeouts
+proxy_read_timeout {{ nginx_proxy_read_timeout | default('600s') }};
+proxy_connect_timeout {{ nginx_proxy_connect_timeout | default('60s') }};
+proxy_send_timeout {{ nginx_proxy_send_timeout | default('60s') }};
+
+# 2. PROXY HEADERS (Transparency for Internal Ecosystem)
+# Pass client information to the backend so it "sees all what it needs"
+proxy_set_header X-Real-IP $remote_addr;
+proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+proxy_set_header X-Forwarded-Proto $scheme;
+proxy_set_header X-Forwarded-Host $host;
+proxy_set_header X-Forwarded-Port $server_port;
+
+# 3. HEADER MASKING (Hide Details from External Clients)
+# Remove headers that leak internal implementation details to the internet
+# Hide Proxy Traces
+proxy_hide_header Via;
+proxy_set_header Via "";
+
+# Hide Backend Software Details
+proxy_hide_header X-Powered-By;
+proxy_hide_header Server;
+proxy_hide_header X-AspNet-Version;
+proxy_hide_header X-Runtime;
+
+# Hide Backend Security/Auth Headers (Managed at Nginx level or scrubbed)
+proxy_hide_header Strict-Transport-Security;
+proxy_hide_header WWW-Authenticate;
+proxy_hide_header ETag;
+
+# 4. SECURITY SHIELDS (Response Headers)
+add_header X-Frame-Options "SAMEORIGIN" always;
+add_header X-Content-Type-Options "nosniff" always;
+add_header X-XSS-Protection "1; mode=block" always;
+add_header Referrer-Policy "strict-origin-when-cross-origin" always;
+
+# Cache control
+proxy_cache_bypass $http_pragma;
+proxy_cache_revalidate on;
+
+server_tokens off;

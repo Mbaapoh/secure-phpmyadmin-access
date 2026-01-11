@@ -1,0 +1,49 @@
+# Produce Configuration
+project_name: "devops-pma-secure"
+
+# Domains
+# Domains
+domain_base: "demo.okay.cm"
+email: "admin@{{ domain_base }}"
+pma_url: "pma.{{ domain_base }}"
+auth_url: "auth.{{ domain_base }}"
+nginx_http_port: 80
+nginx_https_port: 443
+
+# Versions
+keycloak_version: "26.5.0"
+mariadb_version: "11.2"
+pma_version: "latest"
+oauth2_proxy_version: "v7.6.0"
+
+# Usernames
+keycloak_admin_user: "admin"
+pma_user: "pma_admin"
+
+# Secrets are now in group_vars/all/vault.yml
+# Use: ansible-vault edit group_vars/all/vault.yml 
+
+# Keycloak Logic
+keycloak_realm: "infrastructure"
+keycloak_client_id: "pma-secure-client"
+
+# Nginx Reverse Proxy Configuration
+nginx_revproxy_sites:
+  auth:
+    domains:
+      - "{{ auth_url }}"
+    upstreams:
+      - backend_address: "127.0.0.1"
+        backend_port: 8080
+    ssl: true
+    letsencrypt: true
+    letsencrypt_email: "{{ email }}"
+  pma:
+    domains:
+      - "{{ pma_url }}"
+    upstreams:
+      - backend_address: "127.0.0.1"
+        backend_port: 4180
+    ssl: true
+    letsencrypt: true
+    letsencrypt_email: "{{ email }}"

@@ -1,0 +1,107 @@
+---
+- name: Update apt cache (Debian/Ubuntu)
+  apt:
+    update_cache: yes
+    cache_valid_time: 3600
+  when: ansible_os_family == "Debian"
+
+- name: Install basic packages
+  package:
+    name:
+      - curl
+      - git
+      - unzip
+    state: present
+
+- name: Check if Docker is installed
+  command: docker --version
+  register: docker_check
+  ignore_errors: yes
+  changed_when: false
+
+- name: Install Docker Engine (Official)
+  block:
+    - name: Uninstall conflicting packages
+      package:
+        name:
+          - docker.io
+          - docker-doc
+          - docker-compose
+          - docker-compose-v2
+          - podman-docker
+          - containerd
+          - runc
+        state: absent
+
+    - name: Create keyrings directory
+      file:
+        path: /etc/apt/keyrings
+        state: directory
+        mode: '0755'
+
+    - name: Download Docker's official GPG key
+      get_url:
+        url: https://download.docker.com/linux/ubuntu/gpg
+        dest: /etc/apt/keyrings/docker.asc
+        mode: '0644'
+
+    - name: Add Docker repository
+      apt_repository:
+        repo: "deb [arch=amd64 signed-by=/etc/apt/keyrings/docker.asc] https://download.docker.com/linux/ubuntu {{ ansible_distribution_release }} stable"
+        state: present
+        filename: docker
+        update_cache: yes
+
+    - name: Install Docker Engine (Official)
+      apt:
+        name:
+          - docker-ce
+          - docker-ce-cli
+          - containerd.io
+          - docker-buildx-plugin
+          - docker-compose-plugin
+        state: present
+  when: ansible_os_family == "Debian" and docker_check.rc != 0
+
+# Hardening
+- name: Install UFW
+  package:
+    name: ufw
+    state: present
+  when: ansible_os_family == "Debian"
+
+- name: Setup UFW rules
+  ufw:
+    rule: allow
+    port: "{{ item }}"
+    proto: tcp
+  loop:
+    - '22'
+    - '80'
+    - '443'
+  when: ansible_os_family == "Debian"
+
+- name: Set Zabbix version for Ubuntu
+  set_fact:
+    zabbix_major: "7.0"
+  when: ansible_os_family == "Debian"
+
+- name: Download Zabbix repository
+  get_url:
+    url: "https://repo.zabbix.com/zabbix/7.2/release/ubuntu/pool/main/z/zabbix-release/zabbix-release_latest_7.2+ubuntu24.04_all.deb"
+    dest: /tmp/zabbix-release.deb
+    mode: "0644"
+  when: ansible_os_family == "Debian"
+
+- name: Install Zabbix repository
+  apt:
+    deb: /tmp/zabbix-release.deb
+  when: ansible_os_family == "Debian"
+
+- name: Install Zabbix Agent 2
+  apt:
+    name:
+      - zabbix-agent2
+    state: present
+    update_cache: yes
+  when: ansible_os_family == "Debian"

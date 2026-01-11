@@ -1,0 +1,73 @@
+# Docker DNS Resolver
+resolver 127.0.0.11 valid=30s;
+
+# --- Auth Service (Keycloak) ---
+
+server {
+    listen 80;
+    server_name {{ auth_url }};
+
+    # ACME Challenge for Certbot
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    # Redirect all other traffic to HTTPS
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl;
+    server_name {{ auth_url }};
+
+    ssl_certificate /etc/nginx/certs/fullchain.pem;
+    ssl_certificate_key /etc/nginx/certs/privkey.pem;
+
+    location / {
+        set $upstream_keycloak "http://keycloak:8080";
+        proxy_pass $upstream_keycloak;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}
+
+# --- PMA Service (OAuth2-Proxy + phpMyAdmin) ---
+
+server {
+    listen 80;
+    server_name {{ pma_url }};
+
+    # ACME Challenge for Certbot
+    location /.well-known/acme-challenge/ {
+        root /var/www/certbot;
+    }
+
+    # Redirect all other traffic to HTTPS
+    location / {
+        return 301 https://$host$request_uri;
+    }
+}
+
+server {
+    listen 443 ssl;
+    server_name {{ pma_url }};
+
+    ssl_certificate /etc/nginx/certs/fullchain.pem;
+    ssl_certificate_key /etc/nginx/certs/privkey.pem;
+
+    # Large buffers for OIDC headers
+    large_client_header_buffers 4 32k;
+
+    location / {
+        set $upstream_oauth2 "http://oauth2-proxy:4180";
+        proxy_pass $upstream_oauth2;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto $scheme;
+    }
+}

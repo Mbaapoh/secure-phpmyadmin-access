@@ -1,0 +1,84 @@
+---
+- name: Wait for Keycloak authentication to be available
+  uri:
+    url: "http://localhost:8080/realms/master"
+    status_code: 200
+  register: kc_ready
+  until: kc_ready.status == 200
+  retries: 20
+  delay: 5
+
+- name: Create Target Realm ({{ keycloak_realm }})
+  community.general.keycloak_realm:
+    auth_client_id: admin-cli
+    auth_keycloak_url: http://localhost:8080
+    auth_realm: master
+    auth_username: "{{ keycloak_admin_user }}"
+    auth_password: "{{ keycloak_admin_password }}"
+    id: "{{ keycloak_realm }}"
+    realm: "{{ keycloak_realm }}"
+    state: present
+    enabled: true
+    otp_policy_type: totp
+    otp_policy_algorithm: HmacSHA1
+    otp_policy_digits: 6
+    otp_policy_period: 30
+    otp_policy_look_ahead_window: 2
+
+- name: Create Client for OAuth2-Proxy
+  community.general.keycloak_client:
+    auth_client_id: admin-cli
+    auth_keycloak_url: http://localhost:8080
+    auth_realm: master
+    auth_username: "{{ keycloak_admin_user }}"
+    auth_password: "{{ keycloak_admin_password }}"
+    realm: "{{ keycloak_realm }}"
+    client_id: "{{ keycloak_client_id }}"
+    name: "OAuth2 Proxy Application"
+    protocol: openid-connect
+    client_authenticator_type: client-secret
+    secret: "{{ oidc_client_secret }}" # Enforcing the secret from vars
+    public_client: false
+    bearer_only: false
+    standard_flow_enabled: true
+    direct_access_grants_enabled: true
+    service_accounts_enabled: true
+    redirect_uris:
+      - "https://{{ pma_url }}/oauth2/callback"
+    web_origins:
+      - "+"
+    state: present
+
+- name: Create Auditor Group
+  community.general.keycloak_group:
+    auth_client_id: admin-cli
+    auth_keycloak_url: http://localhost:8080
+    auth_realm: master
+    auth_username: "{{ keycloak_admin_user }}"
+    auth_password: "{{ keycloak_admin_password }}"
+    realm: "{{ keycloak_realm }}"
+    name: "Auditors"
+    state: present
+
+- name: Create Production User ({{ pma_user }})
+  community.general.keycloak_user:
+    auth_client_id: admin-cli
+    auth_keycloak_url: http://localhost:8080
+    auth_realm: master
+    auth_username: "{{ keycloak_admin_user }}"
+    auth_password: "{{ keycloak_admin_password }}"
+    realm: "{{ keycloak_realm }}"
+    username: "{{ pma_user }}"
+    enabled: true
+    email: "admin@{{ domain_base }}"
+    firstName: Admin
+    lastName: User
+    credentials:
+      - type: password
+        value: "{{ pma_db_password }}"
+        temporary: false
+    groups:
+      - name: Auditors
+    required_actions:
+      - CONFIGURE_TOTP
+    state: present

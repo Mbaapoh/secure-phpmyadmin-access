@@ -1,0 +1,42 @@
+---
+- name: Create app directory
+  file:
+    path: /opt/devops-pma-secure
+    state: directory
+    mode: '0755'
+
+- name: Create certs directory
+  file:
+    path: /opt/devops-pma-secure/certs
+    state: directory
+
+- name: Template docker-compose.yml
+  template:
+    src: docker-compose.yml.j2
+    dest: /opt/devops-pma-secure/docker-compose.yml
+
+- name: Tear down existing stack (optional, ensures clean state)
+  community.docker.docker_compose_v2:
+    project_src: /opt/devops-pma-secure
+    state: absent
+    remove_volumes: true
+  ignore_errors: yes
+
+- name: Deploy Stack
+  community.docker.docker_compose_v2:
+    project_src: /opt/devops-pma-secure
+    state: present
+    pull: always
+    remove_orphans: true
+
+- name: Wait for Keycloak port open
+  wait_for:
+    host: 127.0.0.1
+    port: 8080
+    timeout: 300
+
+- name: Wait for Keycloak port open
+  wait_for:
+    host: 127.0.0.1
+    port: 8080
+    timeout: 300

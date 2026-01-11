@@ -1,0 +1,16 @@
+server {
+    listen 127.0.0.1:8090;
+    server_name 127.0.0.1;
+    access_log off;
+
+    location /nginx_status {
+        # Enable the status page
+        stub_status;
+
+        # Only allow a connection from the local machine
+        allow 127.0.0.1;
+
+        # Deny all other connections
+        deny all;
+    }
+}

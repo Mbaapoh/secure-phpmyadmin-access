@@ -1,0 +1,11 @@
+---
+- name: Setup Host Nginx & SSL
+  hosts: app_server
+  gather_facts: yes
+  become: yes
+  vars_files:
+    - ../group_vars/all/vars.yml
+    - ../group_vars/all/vault.yml
+  roles:
+    - common
+    - ansible-nginx-revproxy

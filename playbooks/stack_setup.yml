@@ -1,0 +1,30 @@
+---
+- name: Deploy Docker Stack (Keycloak, PMA, OAuth2Proxy)
+  hosts: app_server
+  gather_facts: yes
+  become: yes
+  
+  vars_files:
+    - ../group_vars/all/vars.yml
+    - ../group_vars/all/vault.yml
+
+  pre_tasks:
+    - name: Install System Python Packages (APT)
+      apt:
+        name:
+          - python3-pip
+          - python3-docker
+          - python3-requests
+        state: present
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+
+    - name: Install Keycloak Library (PIP)
+      pip:
+        name: python-keycloak
+        state: present
+        extra_args: "--break-system-packages"
+
+  roles:
+    - stack_deploy
+    - keycloak_config
