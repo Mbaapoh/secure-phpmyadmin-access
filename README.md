@@ -57,12 +57,14 @@ ansible-vault edit group_vars/all/vault.yml --vault-password-file .vault_pass
 
 ## Access & MFA Setup
 
-1.  **Keycloak Admin**: `https://auth.yourdomain.com/` (User: `admin`)
-2.  **phpMyAdmin**: `https://pma.yourdomain.com/`
-    - Login with **Username**: `pma_admin` (Defined in `vars.yml` as `pma_user`)
-    - **First Login**: You will be prompted to setup **Mobile Authenticator (OTP)**.
-    - Scan the QR code with Google Authenticator or similar.
-    - Enter the code to access phpMyAdmin.
+1.  **Keycloak Admin Console**: `https://auth.yourdomain.com/` (User: `admin`)
+2.  **Access phpMyAdmin**: `https://pma.yourdomain.com/`
+    *   **Step 1: MFA Gate** (Keycloak)
+        *   Login with **Username**: `pma_admin` (Managed in Ansible)
+        *   **First Login**: Setup Mobile Authenticator (OTP). Scan QR code and enter code.
+    *   **Step 2: Database Login** (phpMyAdmin)
+        *   After passing MFA, you will see the phpMyAdmin login screen.
+        *   Log in using your **Database Credentials** (e.g., `root` and the `mysql_root_password` defined in vault).
 
 ## Troubleshooting
 

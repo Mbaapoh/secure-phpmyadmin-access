@@ -7,7 +7,7 @@ services:
     environment:
       POSTGRES_DB: keycloak
       POSTGRES_USER: {{ postgres_user | default('keycloak') }}
-      POSTGRES_PASSWORD: {{ postgres_password | default('password') }}
+      POSTGRES_PASSWORD: {{ keycloak_db_password }}
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U {{ postgres_user | default('keycloak') }}"]
       interval: 5s
@@ -28,7 +28,7 @@ services:
       KC_DB: postgres
       KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
       KC_DB_USERNAME: {{ postgres_user | default('keycloak') }}
-      KC_DB_PASSWORD: {{ postgres_password | default('password') }}
+      KC_DB_PASSWORD: {{ keycloak_db_password }}
       
       # Bootstrap Admin (KC 26+)
       KC_BOOTSTRAP_ADMIN_USERNAME: {{ keycloak_admin_user }}
