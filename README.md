@@ -35,22 +35,29 @@ graph TD
 - `playbooks/`: Ansible playbooks.
 - `roles/`: Ansible roles for modular deployment.
 
-## Deploying
+## 🚀 Deployment Cheat Sheet
 
-1.  **Clone the repository**.
-2.  **Setup Secrets**:
-    The project uses Ansible Vault. Create a `.vault_pass` file with the vault password.
-    ```bash
-    echo "YOUR_VAULT_PASSWORD" > .vault_pass
-    ```
-3.  **Run the Playbook**:
-    ```bash
-    ansible-playbook -i inventory/hosts.ini site.yml --vault-password-file .vault_pass
-    ```
+### 1. Full Deployment (Recommended)
+Deploys everything: Nginx, Certbot, Keycloak, phpMyAdmin, and OAuth2-Proxy.
+```bash
+ansible-playbook -i inventory/hosts.ini site.yml --vault-password-file .vault_pass
+```
 
-## Secrets Management
+### 2. Partial Deployments
+**Deploy Application Stack Only** (Keycloak, PMA, OAuth2-Proxy):
+Use this when updating application configuration or Docker images.
+```bash
+ansible-playbook -i inventory/hosts.ini playbooks/stack_setup.yml --vault-password-file .vault_pass
+```
 
-Secrets are stored in `group_vars/all/vault.yml`. To edit them:
+**Deploy Nginx Only** (Reverse Proxy & SSL):
+Use this when updating simple Nginx routing or hardening rules.
+```bash
+ansible-playbook -i inventory/hosts.ini playbooks/nginx_setup.yml --vault-password-file .vault_pass
+```
+
+### 3. Manage Secrets
+Edit encrypted variables (database passwords, client secrets):
 ```bash
 ansible-vault edit group_vars/all/vault.yml --vault-password-file .vault_pass
 ```
