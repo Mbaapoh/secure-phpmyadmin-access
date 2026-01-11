@@ -1,6 +1,8 @@
-# Secure phpMyAdmin Access with Keycloak MFA & OAuth2-Proxy
+# Secure phpMyAdmin with MFA & Keycloak
 
- This project deploys a secure, containerized phpMyAdmin instance protected by:
+**Project Name:** `secure-phpmyadmin-access`
+
+This project deploys a secure, containerized **phpMyAdmin** instance protected by:
 - **Nginx Reverse Proxy** with SSL/TLS (Let's Encrypt).
 - **Keycloak** for Identity and Access Management (IAM).
 - **OAuth2-Proxy** for enforcing authentication before access.
