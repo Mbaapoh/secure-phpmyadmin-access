@@ -47,24 +47,46 @@
       - "https://{{ pma_url }}/oauth2/callback"
     web_origins:
       - "+"
+    protocol_mappers:
+      - name: pma-audience-mapper
+        protocol: openid-connect
+        protocolMapper: oidc-audience-mapper
+        config:
+          included.client.audience: "{{ keycloak_client_id }}"
+          id.token.claim: "true"
+          access.token.claim: "true"
     state: present
 
-- name: Add Audience Mapper to PMA Client
-  community.general.keycloak_client_protocol_mapper:
+- name: Create Client for Jenkins
+  community.general.keycloak_client:
     auth_client_id: admin-cli
     auth_keycloak_url: http://localhost:8080
     auth_realm: master
     auth_username: "{{ keycloak_admin_user }}"
     auth_password: "{{ keycloak_admin_password }}"
     realm: "{{ keycloak_realm }}"
-    client_id: "{{ keycloak_client_id }}"
-    name: pma-audience-mapper
+    client_id: "{{ jenkins_client_id }}"
+    name: "Jenkins OAuth2 Proxy"
     protocol: openid-connect
-    protocolMapper: oidc-audience-mapper
-    config:
-      included.client.audience: "{{ keycloak_client_id }}"
-      id.token.claim: "true"
-      access.token.claim: "true"
+    client_authenticator_type: client-secret
+    secret: "{{ jenkins_client_secret }}"
+    public_client: false
+    bearer_only: false
+    standard_flow_enabled: true
+    direct_access_grants_enabled: true
+    service_accounts_enabled: true
+    redirect_uris:
+      - "https://{{ jenkins_url }}/oauth2/callback"
+    web_origins:
+      - "+"
+    protocol_mappers:
+      - name: jenkins-audience-mapper
+        protocol: openid-connect
+        protocolMapper: oidc-audience-mapper
+        config:
+          included.client.audience: "{{ jenkins_client_id }}"
+          id.token.claim: "true"
+          access.token.claim: "true"
     state: present
 
 - name: Create Auditor Group
