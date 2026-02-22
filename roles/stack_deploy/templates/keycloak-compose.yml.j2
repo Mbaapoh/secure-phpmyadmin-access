@@ -1,0 +1,53 @@
+services:
+  postgres:
+    image: postgres:15
+    volumes:
+      - keycloak_postgres_data:/var/lib/postgresql/data
+    environment:
+      POSTGRES_DB: keycloak
+      POSTGRES_USER: {{ postgres_user | default('keycloak') }}
+      POSTGRES_PASSWORD: {{ keycloak_db_password }}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U {{ postgres_user | default('keycloak') }}"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    networks:
+      - keycloak_net
+    restart: always
+
+  keycloak:
+    image: quay.io/keycloak/keycloak:{{ keycloak_version }}
+    command: start --http-enabled=true --hostname-strict=false
+    environment:
+      KC_DB: postgres
+      KC_DB_URL: jdbc:postgresql://postgres:5432/keycloak
+      KC_DB_USERNAME: {{ postgres_user | default('keycloak') }}
+      KC_DB_PASSWORD: {{ keycloak_db_password }}
+      KC_BOOTSTRAP_ADMIN_USERNAME: {{ keycloak_admin_user }}
+      KC_BOOTSTRAP_ADMIN_PASSWORD: {{ keycloak_admin_password }}
+      KC_PROXY_HEADERS: "xforwarded" 
+      KC_HOSTNAME: https://{{ auth_url }}
+      KC_HEALTH_ENABLED: "true"
+      KC_METRICS_ENABLED: "true"
+    ports:
+      - "127.0.0.1:8080:8080" # Exposed to Host for Nginx Proxy
+    healthcheck:
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200 OK'"]
+      interval: 10s
+      timeout: 5s
+      retries: 30
+      start_period: 60s
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks:
+      - keycloak_net
+    restart: always
+
+volumes:
+  keycloak_postgres_data:
+
+networks:
+  keycloak_net:
+    driver: bridge

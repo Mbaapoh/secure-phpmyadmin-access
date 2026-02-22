@@ -1,30 +1,38 @@
 ---
-- name: Create app directory
+- name: Create app directories
   file:
-    path: /opt/devops-pma-secure
+    path: "/opt/devops-pma-secure/{{ item }}"
     state: directory
     mode: '0755'
+  loop:
+    - keycloak
+    - pma
+    - jenkins
 
-- name: Create certs directory
-  file:
-    path: /opt/devops-pma-secure/certs
-    state: directory
-
-- name: Template docker-compose.yml
+- name: Template keycloak docker-compose
   template:
-    src: docker-compose.yml.j2
-    dest: /opt/devops-pma-secure/docker-compose.yml
+    src: keycloak-compose.yml.j2
+    dest: /opt/devops-pma-secure/keycloak/docker-compose.yml
 
-- name: Tear down existing stack (optional, ensures clean state)
+- name: Template pma docker-compose
+  template:
+    src: pma-compose.yml.j2
+    dest: /opt/devops-pma-secure/pma/docker-compose.yml
+
+- name: Template jenkins docker-compose
+  template:
+    src: jenkins-compose.yml.j2
+    dest: /opt/devops-pma-secure/jenkins/docker-compose.yml
+
+- name: Tear down old monolith stack (cleanup)
   community.docker.docker_compose_v2:
     project_src: /opt/devops-pma-secure
     state: absent
-    remove_volumes: true
-  ignore_errors: yes
+  ignore_errors: true
 
-- name: Deploy Stack
+- name: Deploy Keycloak Stack
   community.docker.docker_compose_v2:
-    project_src: /opt/devops-pma-secure
+    project_src: /opt/devops-pma-secure/keycloak
     state: present
     pull: always
     remove_orphans: true
@@ -35,8 +43,16 @@
     port: 8080
     timeout: 300
 
-- name: Wait for Keycloak port open
-  wait_for:
-    host: 127.0.0.1
-    port: 8080
-    timeout: 300
+- name: Deploy PMA Stack
+  community.docker.docker_compose_v2:
+    project_src: /opt/devops-pma-secure/pma
+    state: present
+    pull: always
+    remove_orphans: true
+
+- name: Deploy Jenkins Stack
+  community.docker.docker_compose_v2:
+    project_src: /opt/devops-pma-secure/jenkins
+    state: present
+    pull: always
+    remove_orphans: true
