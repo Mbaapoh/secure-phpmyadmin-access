@@ -49,6 +49,24 @@
       - "+"
     state: present
 
+- name: Add Audience Mapper to PMA Client
+  community.general.keycloak_client_protocol_mapper:
+    auth_client_id: admin-cli
+    auth_keycloak_url: http://localhost:8080
+    auth_realm: master
+    auth_username: "{{ keycloak_admin_user }}"
+    auth_password: "{{ keycloak_admin_password }}"
+    realm: "{{ keycloak_realm }}"
+    client_id: "{{ keycloak_client_id }}"
+    name: pma-audience-mapper
+    protocol: openid-connect
+    protocolMapper: oidc-audience-mapper
+    config:
+      included.client.audience: "{{ keycloak_client_id }}"
+      id.token.claim: "true"
+      access.token.claim: "true"
+    state: present
+
 - name: Create Auditor Group
   community.general.keycloak_group:
     auth_client_id: admin-cli
@@ -70,6 +88,7 @@
     realm: "{{ keycloak_realm }}"
     username: "{{ pma_user }}"
     enabled: true
+    emailVerified: true
     email: "admin@{{ domain_base }}"
     firstName: Admin
     lastName: User
