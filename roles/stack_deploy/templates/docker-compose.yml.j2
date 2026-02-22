@@ -159,8 +159,6 @@ services:
       OAUTH2_PROXY_COOKIE_REFRESH: "15m"
       OAUTH2_PROXY_SSL_INSECURE_SKIP_VERIFY: "true" 
       OAUTH2_PROXY_INSECURE_OIDC_ALLOW_UNVERIFIED_EMAIL: "true"
-      OAUTH2_PROXY_PASS_USER_HEADERS: "true"
-      OAUTH2_PROXY_SET_XAUTHREQUEST: "true"
     depends_on:
       keycloak:
         condition: service_started 
