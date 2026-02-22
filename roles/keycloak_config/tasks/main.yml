@@ -123,3 +123,27 @@
     required_actions:
       - CONFIGURE_TOTP
     state: present
+
+- name: Create Production User ({{ mbaapoh_user }})
+  community.general.keycloak_user:
+    auth_client_id: admin-cli
+    auth_keycloak_url: http://localhost:8080
+    auth_realm: master
+    auth_username: "{{ keycloak_admin_user }}"
+    auth_password: "{{ keycloak_admin_password }}"
+    realm: "{{ keycloak_realm }}"
+    username: "{{ mbaapoh_user }}"
+    enabled: true
+    emailVerified: true
+    email: "{{ mbaapoh_user }}@{{ domain_base }}"
+    firstName: Mbaapoh
+    lastName: User
+    credentials:
+      - type: password
+        value: "{{ mbaapoh_password }}"
+        temporary: false
+    groups:
+      - name: Auditors
+    required_actions:
+      - CONFIGURE_TOTP
+    state: present

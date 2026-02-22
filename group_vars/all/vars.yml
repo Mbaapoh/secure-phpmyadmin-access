@@ -20,6 +20,7 @@ oauth2_proxy_version: "v7.6.0"
 # Usernames
 keycloak_admin_user: "admin"
 pma_user: "pma_admin"
+mbaapoh_user: "mbaapoh"
 
 # Secrets are now in group_vars/all/vault.yml
 # Use: ansible-vault edit group_vars/all/vault.yml 
