@@ -23,7 +23,7 @@
     otp_policy_algorithm: HmacSHA1
     otp_policy_digits: 6
     otp_policy_period: 30
-    otp_policy_look_ahead_window: 2
+    otp_policy_look_ahead_window: 20
 
 - name: Create Client for OAuth2-Proxy
   community.general.keycloak_client:
@@ -47,6 +47,14 @@
       - "https://{{ pma_url }}/oauth2/callback"
     web_origins:
       - "+"
+    protocol_mappers:
+      - name: "audience-mapping"
+        protocol: "openid-connect"
+        protocolMapper: "oidc-audience-mapper"
+        config:
+          included.client.audience: "{{ keycloak_client_id }}"
+          id.token.claim: "true"
+          access.token.claim: "true"
     state: present
 
 - name: Create Auditor Group
@@ -71,6 +79,7 @@
     username: "{{ pma_user }}"
     enabled: true
     email: "admin@{{ domain_base }}"
+    email_verified: true
     firstName: Admin
     lastName: User
     credentials:

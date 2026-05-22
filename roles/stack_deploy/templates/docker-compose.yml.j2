@@ -41,18 +41,22 @@ services:
       # We explicitly set https scheme for hostname to match external URL
       
       # Health Checks
-      KC_HEALTH_ENABLED: "true"
       KC_METRICS_ENABLED: "true"
+      KC_LOG_LEVEL: "info,org.keycloak.events:debug,org.keycloak.services:debug"
+      KC_HEALTH_ENABLED: "true"
     ports:
       - "127.0.0.1:8080:8080" # Exposed to Host for Nginx Proxy
     healthcheck:
       # Check /health/started (Lifecycle) or /health/ready (Readiness).
       # Using /health/ready ensures DB is connected and migration done.
-      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200 OK'"]
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200 OK'"]
       interval: 10s
       timeout: 5s
       retries: 30       # 30 * 10s = 5 minutes tolerance for slow DB migrations
       start_period: 60s # Grace period for JVM startup
+    volumes:
+      - /etc/localtime:/etc/localtime:ro
+      - /etc/timezone:/etc/timezone:ro
     depends_on:
       postgres:
         condition: service_healthy
