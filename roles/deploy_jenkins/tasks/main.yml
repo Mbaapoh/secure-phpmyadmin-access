@@ -35,5 +35,7 @@
 - name: Deploy Jenkins Stack
   community.docker.docker_compose_v2:
     project_src: "/opt/docker/jenkins"
+    files:
+      - "jenkins-compose.yml"
     state: present
     build: always

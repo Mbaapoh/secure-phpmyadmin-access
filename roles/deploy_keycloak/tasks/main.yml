@@ -17,9 +17,9 @@
     state: directory
     mode: '0755'
 
-- name: Copy Microcks Realm
-  ansible.builtin.copy:
-    src: files/microcks-realm.json
+- name: Template Microcks Realm
+  ansible.builtin.template:
+    src: microcks-realm.json.j2
     dest: /opt/devops-pma-secure/keycloak/data/import/microcks-realm.json
     mode: '0644'
 

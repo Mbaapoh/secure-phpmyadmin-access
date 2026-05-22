@@ -35,8 +35,6 @@ services:
     networks:
       - oauth2_net
       - "{{ traefik_network }}"
-    extra_hosts:
-      - "{{ auth_url }}:172.18.0.1"
     restart: always
 
 networks:

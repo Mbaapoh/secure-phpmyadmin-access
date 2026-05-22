@@ -1,13 +1,15 @@
 services:
   jenkins:
-    build: .
+    build:
+      context: .
+      dockerfile: Jenkins.Dockerfile
     container_name: jenkins
     user: root # For simplicity in this demo, allows writing to docker socket if needed
     environment:
       - JENKINS_ADMIN_PASSWORD={{ jenkins_client_secret }}
-      - MICROCKS_SERVICE_ACCOUNT_SECRET=microcks123
+      - MICROCKS_SERVICE_ACCOUNT_SECRET=ab54d329-e435-41ae-a900-ec6b3fe15c54
       - JAVA_OPTS=-Djenkins.install.runSetupWizard=false
-      - JENKINS_OPTS=--httpHeaderSize=32768
+      - JENKINS_OPTS=--requestHeaderSize=32768
     volumes:
       - jenkins_home:/var/jenkins_home
       - ./api-specs:/opt/api-specs:ro

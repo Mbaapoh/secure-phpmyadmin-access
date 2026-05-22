@@ -1,6 +1,6 @@
 services:
   mongodb:
-    image: mongo:7.0
+    image: mongo:4.4.29
     container_name: microcks-db
     restart: unless-stopped
     volumes:
@@ -8,20 +8,32 @@ services:
     networks:
       - "{{ traefik_network }}"
 
+  postman:
+    image: quay.io/microcks/microcks-postman-runtime:0.7.2
+    container_name: microcks-postman-runtime
+    restart: unless-stopped
+    networks:
+      - "{{ traefik_network }}"
+
   microcks:
-    image: quay.io/microcks/microcks-uber:latest
+    image: quay.io/microcks/microcks:1.13.2
     container_name: microcks
     restart: unless-stopped
     depends_on:
       - mongodb
+      - postman
     environment:
-      - SPRING_PROFILES_ACTIVE=uber,prod
-      - MONGO_HOST=mongodb
-      # The uber image bundles its own Keycloak at /auth - use the public URL
-      - KEYCLOAK_URL=https://microcks.{{ domain_base }}/auth
+      - SPRING_PROFILES_ACTIVE=prod
+      - SPRING_DATA_MONGODB_URI=mongodb://microcks-db:27017
+      - SPRING_DATA_MONGODB_DATABASE=microcks
+      - POSTMAN_RUNNER_URL=http://microcks-postman-runtime:3000
+      - TEST_CALLBACK_URL=https://microcks.{{ domain_base }}
+      - SERVICES_UPDATE_INTERVAL=0 0 0/2 * * *
+      - KEYCLOAK_URL=https://{{ auth_url }}
+      - KEYCLOAK_PUBLIC_URL=https://{{ auth_url }}
+      - JAVA_OPTIONS=-Dspring.security.oauth2.resourceserver.jwt.issuer-uri=https://{{ auth_url }}/realms/microcks -Dspring.security.oauth2.resourceserver.jwt.jwk-set-uri=https://{{ auth_url }}/realms/microcks/protocol/openid-connect/certs
     volumes:
       - microcks-data:/data
-      - ./microcks-config/application.properties:/deployments/config/application.properties:ro
     networks:
       - "{{ traefik_network }}"
     labels:

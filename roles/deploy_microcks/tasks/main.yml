@@ -10,12 +10,6 @@
     state: directory
     mode: '0755'
 
-- name: Copy Microcks application.properties
-  ansible.builtin.copy:
-    src: files/application.properties
-    dest: "/opt/docker/microcks/microcks-config/application.properties"
-    mode: '0644'
-
 - name: Template microcks docker-compose
   ansible.builtin.template:
     src: microcks-compose.yml.j2
