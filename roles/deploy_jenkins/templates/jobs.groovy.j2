@@ -1,0 +1,20 @@
+pipeline {
+    agent any
+    stages {
+        stage('Sync API Contracts') {
+            steps {
+                // Step 1: Sync the Stateful MTN MoMo API Specification
+                microcksImport(
+                    server: 'microcks-cloud',
+                    specificationFiles: '/opt/api-specs/mtn-momo-collections-v1.yaml:true'
+                )
+                
+                // Step 2: Sync the Baseline Official Cart API Specification
+                microcksImport(
+                    server: 'microcks-cloud',
+                    specificationFiles: '/opt/api-specs/cart-api.yaml:true'
+                )
+            }
+        }
+    }
+}

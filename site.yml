@@ -2,5 +2,6 @@
 - import_playbook: playbooks/deploy_oauth2proxy.yml
 - import_playbook: playbooks/deploy_pma.yml
 - import_playbook: playbooks/deploy_jenkins.yml
+- import_playbook: playbooks/deploy_microcks.yml
 - import_playbook: playbooks/deploy_nginx.yml
 - import_playbook: playbooks/deploy_traefik.yml

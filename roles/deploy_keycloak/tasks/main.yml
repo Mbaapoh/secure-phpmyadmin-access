@@ -6,9 +6,22 @@
     mode: '0755'
 
 - name: Template keycloak docker-compose
-  template:
+  ansible.builtin.template:
     src: keycloak-compose.yml.j2
     dest: /opt/devops-pma-secure/keycloak/docker-compose.yml
+    mode: '0644'
+
+- name: Create import directory
+  ansible.builtin.file:
+    path: /opt/devops-pma-secure/keycloak/data/import
+    state: directory
+    mode: '0755'
+
+- name: Copy Microcks Realm
+  ansible.builtin.copy:
+    src: files/microcks-realm.json
+    dest: /opt/devops-pma-secure/keycloak/data/import/microcks-realm.json
+    mode: '0644'
 
 - name: Deploy Keycloak Stack
   community.docker.docker_compose_v2:

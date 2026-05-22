@@ -1,0 +1,34 @@
+jenkins:
+  systemMessage: "Enterprise API Platform Infrastructure — Managed by Ansible & GitOps"
+  numExecutors: 2
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: "admin"
+          password: "${JENKINS_ADMIN_PASSWORD}"
+  authorizationStrategy:
+    loggedInUsersCanDoAnything:
+      allowAnonymousRead: false
+
+unclassified:
+  microcksGlobalConfiguration:
+    servers:
+      - name: "microcks-cloud"
+        apiUrl: "https://microcks.{{ domain_base }}/api"
+        keycloakUrl: "https://{{ auth_url }}"
+        realm: "microcks"
+        clientId: "microcks-serviceaccount"
+        clientSecret: "${MICROCKS_SERVICE_ACCOUNT_SECRET}"
+
+jobs:
+  - script: >
+      pipelineJob('microcks-api-contract-sync') {
+        description('Enterprise API Contract Synchronizer - Automated Mock Deployment')
+        definition {
+          cps {
+            script(readFileFromWorkspace('/var/jenkins_home/jobs.groovy'))
+            sandbox(true)
+          }
+        }
+      }

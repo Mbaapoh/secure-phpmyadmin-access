@@ -7,12 +7,33 @@
 
 - name: Template jenkins docker-compose
   ansible.builtin.template:
-    src: jenkins-compose.yml.j2
-    dest: "/opt/docker/jenkins/docker-compose.yml"
+    src: "{{ item }}"
+    dest: "/opt/docker/jenkins/{{ item | regex_replace('\\.j2$', '') }}"
+    mode: '0644'
+  loop:
+    - jenkins-compose.yml.j2
+    - Jenkins.Dockerfile.j2
+    - jenkins.yaml.j2
+    - jobs.groovy.j2
+  notify: Restart Jenkins
+
+- name: Copy plugins.txt
+  ansible.builtin.copy:
+    src: files/plugins.txt
+    dest: "/opt/docker/jenkins/plugins.txt"
     mode: '0644'
   notify: Restart Jenkins
+
+- name: Copy API specs from old location
+  ansible.builtin.copy:
+    src: "/opt/fintech-showcase/api-specs/"
+    dest: "/opt/docker/jenkins/api-specs/"
+    remote_src: yes
+    mode: '0755'
+  ignore_errors: yes
 
 - name: Deploy Jenkins Stack
   community.docker.docker_compose_v2:
     project_src: "/opt/docker/jenkins"
     state: present
+    build: always

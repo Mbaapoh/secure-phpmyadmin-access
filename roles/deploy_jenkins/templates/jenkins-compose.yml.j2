@@ -1,12 +1,15 @@
 services:
   jenkins:
-    image: jenkins/jenkins:{{ jenkins_version }}
+    build: .
     container_name: jenkins
     user: root # For simplicity in this demo, allows writing to docker socket if needed
     environment:
+      - JENKINS_ADMIN_PASSWORD={{ jenkins_client_secret }}
+      - MICROCKS_SERVICE_ACCOUNT_SECRET=microcks123
       - JAVA_OPTS=-Djenkins.install.runSetupWizard=false
     volumes:
       - jenkins_home:/var/jenkins_home
+      - ./api-specs:/opt/api-specs:ro
     ports:
       - "8082:8080" # Standard port for external routing/nginx
     labels:

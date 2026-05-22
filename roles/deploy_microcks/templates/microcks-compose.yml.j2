@@ -1,0 +1,40 @@
+services:
+  mongodb:
+    image: mongo:7.0
+    container_name: microcks-db
+    restart: unless-stopped
+    volumes:
+      - microcks-mongo-data:/data/db
+    networks:
+      - "{{ traefik_network }}"
+
+  microcks:
+    image: quay.io/microcks/microcks-uber:latest
+    container_name: microcks
+    restart: unless-stopped
+    depends_on:
+      - mongodb
+    environment:
+      - SPRING_PROFILES_ACTIVE=uber,prod
+      - MONGO_HOST=mongodb
+      # The uber image bundles its own Keycloak at /auth - use the public URL
+      - KEYCLOAK_URL=https://microcks.{{ domain_base }}/auth
+    volumes:
+      - microcks-data:/data
+      - ./microcks-config/application.properties:/deployments/config/application.properties:ro
+    networks:
+      - "{{ traefik_network }}"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.microcks.rule=Host(`microcks.{{ domain_base }}`)"
+      - "traefik.http.routers.microcks.entrypoints=websecure"
+      - "traefik.http.routers.microcks.tls.certresolver={{ traefik_certresolver }}"
+      - "traefik.http.services.microcks.loadbalancer.server.port=8080"
+
+volumes:
+  microcks-mongo-data:
+  microcks-data:
+
+networks:
+  {{ traefik_network }}:
+    external: true
