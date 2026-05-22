@@ -1,0 +1,18 @@
+---
+- name: Create Jenkins app directory
+  ansible.builtin.file:
+    path: "/opt/docker/jenkins"
+    state: directory
+    mode: '0755'
+
+- name: Template jenkins docker-compose
+  ansible.builtin.template:
+    src: jenkins-compose.yml.j2
+    dest: "/opt/docker/jenkins/docker-compose.yml"
+    mode: '0644'
+  notify: Restart Jenkins
+
+- name: Deploy Jenkins Stack
+  community.docker.docker_compose_v2:
+    project_src: "/opt/docker/jenkins"
+    state: present

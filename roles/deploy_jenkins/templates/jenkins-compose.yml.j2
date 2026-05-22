@@ -1,0 +1,34 @@
+services:
+  jenkins:
+    image: jenkins/jenkins:{{ jenkins_version }}
+    container_name: jenkins
+    user: root # For simplicity in this demo, allows writing to docker socket if needed
+    environment:
+      - JAVA_OPTS=-Djenkins.install.runSetupWizard=false
+    volumes:
+      - jenkins_home:/var/jenkins_home
+    ports:
+      - "8082:8080" # Standard port for external routing/nginx
+    labels:
+      - "traefik.enable=true"
+      # Universal routing configuration via Traefik (if deployed)
+      - "traefik.http.routers.jenkins.rule=Host(`{{ jenkins_url }}`)"
+      - "traefik.http.routers.jenkins.entrypoints=websecure"
+      - "traefik.http.routers.jenkins.tls.certresolver={{ traefik_certresolver }}"
+      - "traefik.http.services.jenkins.loadbalancer.server.port=8080"
+      
+      # Protect Jenkins with the Central OAuth2-Proxy Middleware
+      - "traefik.http.routers.jenkins.middlewares=iam-oauth2-proxy@docker"
+    networks:
+      - {{ traefik_network }}
+      - jenkins_net
+    restart: unless-stopped
+
+networks:
+  jenkins_net:
+    driver: bridge
+  {{ traefik_network }}:
+    external: true
+
+volumes:
+  jenkins_home:
