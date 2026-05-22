@@ -3,7 +3,7 @@ openapi: 3.0.2
 info:
   title: Cart API
   version: 1.0.0
-  description: A simple Cart for demonstrating stateful mocking capabilities in Microcks
+  description: A simple Cart for demonstrating stateful mocking capabilities in Microcks (Trigger Webhook Test)
 paths:
   /cart:
     parameters:
