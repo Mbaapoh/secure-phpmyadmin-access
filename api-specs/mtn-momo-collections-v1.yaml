@@ -1,0 +1,215 @@
+openapi: 3.0.3
+info:
+  title: MTN MoMo Collections API
+  version: v1
+  description: Stateful mock tracking the verified header-driven Cart API standard
+servers:
+  - url: https://sandbox.momodeveloper.mtn.com
+paths:
+  /collection/v1_0/requesttopay:
+    post:
+      summary: Request a payment
+      operationId: requestToPay
+      x-microcks-operation:
+        dispatcher: SCRIPT
+        dispatcherRules: |-
+          // ── Clean Header Extraction using the exact Cart API standard ──
+          def refId = mockRequest.getRequestHeaders().get("X-Reference-Id", "null")
+          if (refId == "null") {
+            refId = mockRequest.getRequestHeaders().get("x-reference-id", "default-ref")
+          }
+          
+          // ── Clean Body Parsing standard ──
+          def body = new groovy.json.JsonSlurper().parseText(mockRequest.requestContent)
+          
+          def tx = [
+            status: "PENDING",
+            amount: (body.amount ?: "1000").toString(),
+            currency: (body.currency ?: "XAF").toString(),
+            externalId: (body.externalId ?: "").toString(),
+            partyId: (body.payer?.partyId ?: "237670000000").toString(),
+            pollCount: 0
+          ]
+          
+          store.put(refId + "-state", groovy.json.JsonOutput.toJson(tx), 300)
+          return "standard-request"
+      parameters:
+        - name: X-Reference-Id
+          in: header
+          required: true
+          schema: { type: string, format: uuid }
+        - name: X-Target-Environment
+          in: header
+          required: true
+          schema: { type: string }
+        - name: Ocp-Apim-Subscription-Key
+          in: header
+          required: true
+          schema: { type: string }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RequestToPayPayload'
+            examples:
+              standard-request:
+                value: |-
+                  {
+                    "amount": "1000",
+                    "currency": "XAF",
+                    "externalId": "INV-20260512-001",
+                    "payer": { "partyIdType": "MSISDN", "partyId": "237670000000" }
+                  }
+      responses:
+        '202':
+          description: Accepted
+          content:
+            text/plain:
+              schema: { type: string }
+              examples:
+                standard-request: 
+                  value: ""
+    get:
+      summary: Get transaction status
+      operationId: getTransactionStatus
+      x-microcks-operation:
+        dispatcher: SCRIPT
+        dispatcherRules: |-
+          // ── Clean Header Extraction using the exact Cart API standard ──
+          def refId = mockRequest.getRequestHeaders().get("X-Reference-Id", "null")
+          if (refId == "null") {
+            refId = mockRequest.getRequestHeaders().get("x-reference-id", "null")
+          }
+          
+          if (refId == "null") {
+            return "failed-payment"
+          }
+          
+          def txJson = store.get(refId + "-state")
+          if (txJson != null) {
+            def tx = new groovy.json.JsonSlurper().parseText(txJson)
+            def pollCount = (tx.pollCount ?: 0) + 1
+            tx.pollCount = pollCount
+            
+            if (pollCount > 2) {
+              tx.status = "SUCCESSFUL"
+            }
+            store.put(refId + "-state", groovy.json.JsonOutput.toJson(tx), 300)
+            
+            // ── Exact Cart API Property Injection Standard ──
+            requestContext.status = tx.status.toString()
+            requestContext.amount = tx.amount.toString()
+            requestContext.currency = tx.currency.toString()
+            requestContext.externalId = tx.externalId.toString()
+            requestContext.partyId = tx.partyId.toString()
+            requestContext.reason = tx.status == "SUCCESSFUL" ? "" : "PENDING"
+            requestContext.financialTransactionId = tx.status == "SUCCESSFUL" ? "531321564" : ""
+            
+            return "stateful-payment"
+          }
+          return "failed-payment"
+      parameters:
+        - name: X-Reference-Id
+          in: header
+          required: true
+          schema: { type: string, format: uuid }
+        - name: X-Target-Environment
+          in: header
+          required: true
+          schema: { type: string }
+        - name: Ocp-Apim-Subscription-Key
+          in: header
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TransactionStatus'
+              examples:
+                stateful-payment:
+                  value: |-
+                    {
+                      "amount": "{{ amount }}",
+                      "currency": "{{ currency }}",
+                      "financialTransactionId": "{{ financialTransactionId }}",
+                      "externalId": "{{ externalId }}",
+                      "payer": {
+                        "partyIdType": "MSISDN",
+                        "partyId": "{{ partyId }}"
+                      },
+                      "status": "{{ status }}",
+                      "reason": "{{ reason }}"
+                    }
+                failed-payment:
+                  value: |-
+                    {
+                      "status": "FAILED",
+                      "reason": "RESOURCE_NOT_FOUND"
+                    }
+
+  /collection/v1_0/account/balance:
+    get:
+      summary: Get Account Balance
+      operationId: getBalance
+      parameters:
+        - name: X-Target-Environment
+          in: header
+          required: true
+          schema: { type: string }
+        - name: Ocp-Apim-Subscription-Key
+          in: header
+          required: true
+          schema: { type: string }
+      responses:
+        '200':
+          description: Account Balance
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AccountBalance'
+              examples:
+                healthy-balance:
+                  value: |-
+                    {
+                      "availableBalance": "1500000",
+                      "currency": "XAF"
+                    }
+
+components:
+  schemas:
+    RequestToPayPayload:
+      type: object
+      properties:
+        amount: { type: string }
+        currency: { type: string }
+        externalId: { type: string }
+        payer:
+          type: object
+          properties:
+            partyIdType: { type: string }
+            partyId: { type: string }
+        payerMessage: { type: string }
+        payeeNote: { type: string }
+    TransactionStatus:
+      type: object
+      properties:
+        amount: { type: string }
+        currency: { type: string }
+        financialTransactionId: { type: string }
+        externalId: { type: string }
+        payer:
+          type: object
+          properties:
+            partyIdType: { type: string }
+            partyId: { type: string }
+        status: { type: string }
+        reason: { type: string }
+    AccountBalance:
+      type: object
+      properties:
+        availableBalance: { type: string }
+        currency: { type: string }

@@ -12,7 +12,6 @@ services:
       - JENKINS_OPTS=--requestHeaderSize=32768
     volumes:
       - jenkins_home:/var/jenkins_home
-      - ./api-specs:/opt/api-specs:ro
     ports:
       - "8082:8080" # Standard port for external routing/nginx
     labels:

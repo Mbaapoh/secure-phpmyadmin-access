@@ -24,13 +24,6 @@
     mode: '0644'
   notify: Restart Jenkins
 
-- name: Copy API specs from old location
-  ansible.builtin.copy:
-    src: "/opt/fintech-showcase/api-specs/"
-    dest: "/opt/docker/jenkins/api-specs/"
-    remote_src: yes
-    mode: '0755'
-  ignore_errors: yes
 
 - name: Deploy Jenkins Stack
   community.docker.docker_compose_v2:

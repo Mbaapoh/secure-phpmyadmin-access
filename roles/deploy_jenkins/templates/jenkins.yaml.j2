@@ -35,9 +35,19 @@ jobs:
       pipelineJob('microcks-api-contract-sync') {
         description('Enterprise API Contract Synchronizer - Automated Mock Deployment')
         definition {
-          cps {
-            script(new File('/var/jenkins_home/jobs.groovy').text)
-            sandbox(true)
+          cpsScm {
+            scm {
+              git {
+                remote {
+                  url('https://github.com/Mbaapoh/secure-phpmyadmin-access.git')
+                }
+                branch('feature/stateful-mocking')
+              }
+            }
+            scriptPath('Jenkinsfile')
           }
+        }
+        triggers {
+          githubPush()
         }
       }
