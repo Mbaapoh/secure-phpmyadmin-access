@@ -22,13 +22,13 @@ RUN curl -fsSL -o /usr/share/jenkins/ref/plugins/microcks-jenkins-plugin.jpi \
     https://repo.maven.apache.org/maven2/io/github/microcks/microcks-jenkins-plugin/0.6.0/microcks-jenkins-plugin-0.6.0.hpi
 
 # Create casc directory
-RUN mkdir -p /var/jenkins_home/casc_configs
+RUN mkdir -p /usr/share/jenkins/ref/casc_configs
 
 # Copy JCasC config
-COPY jenkins.yaml /var/jenkins_home/casc_configs/jenkins.yaml
+COPY jenkins.yaml /usr/share/jenkins/ref/casc_configs/jenkins.yaml
 
 # IMPORTANT: Copy Job DSL script
-COPY jobs.groovy /var/jenkins_home/jobs.groovy
+COPY jobs.groovy /usr/share/jenkins/ref/jobs.groovy
 
 # Disable setup wizard
 ENV JAVA_OPTS="-Djenkins.install.runSetupWizard=false \
