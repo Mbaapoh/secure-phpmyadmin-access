@@ -11,15 +11,24 @@ jenkins:
     loggedInUsersCanDoAnything:
       allowAnonymousRead: false
 
+credentials:
+  system:
+    domainCredentials:
+      - credentials:
+          - usernamePassword:
+              scope: GLOBAL
+              id: "microcks-creds"
+              username: "microcks-serviceaccount"
+              password: "${MICROCKS_SERVICE_ACCOUNT_SECRET}"
+              description: "Microcks Keycloak Service Account Credentials"
+              
 unclassified:
   microcksGlobalConfiguration:
     microcksInstallations:
-      - name: "microcks-cloud"
-        apiUrl: "https://microcks.{{ domain_base }}/api"
-        keycloakUrl: "https://{{ auth_url }}"
-        realm: "microcks"
-        clientId: "microcks-serviceaccount"
-        clientSecret: "${MICROCKS_SERVICE_ACCOUNT_SECRET}"
+      - microcksDisplayName: "microcks-cloud"
+        microcksApiURL: "https://microcks.{{ domain_base }}/api"
+        microcksCredentialsId: "microcks-creds"
+        disableSSLValidation: true
 
 jobs:
   - script: >
@@ -27,7 +36,7 @@ jobs:
         description('Enterprise API Contract Synchronizer - Automated Mock Deployment')
         definition {
           cps {
-            script(readFileFromWorkspace('/var/jenkins_home/jobs.groovy'))
+            script(new File('/var/jenkins_home/jobs.groovy').text)
             sandbox(true)
           }
         }
