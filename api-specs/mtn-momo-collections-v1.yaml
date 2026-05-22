@@ -2,7 +2,7 @@ openapi: 3.0.3
 info:
   title: MTN MoMo Collections API
   version: v1
-  description: Stateful mock tracking the verified header-driven Cart API standard
+  description: Stateful mock tracking the verified header-driven Cart API standard (Trigger Webhook Test 2)
 servers:
   - url: https://sandbox.momodeveloper.mtn.com
 paths:
