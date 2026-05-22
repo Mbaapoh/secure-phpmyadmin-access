@@ -31,9 +31,15 @@ services:
       KC_HEALTH_ENABLED: "true"
       KC_METRICS_ENABLED: "true"
     ports:
-      - "127.0.0.1:8080:8080" # Exposed to Host for Nginx Proxy
+      - "0.0.0.0:8080:8080" # Exposed to all interfaces so external Nginx or cross-host Traefik can route to it
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.iam-keycloak.rule=Host(`{{ auth_url }}`)"
+      - "traefik.http.routers.iam-keycloak.entrypoints=websecure"
+      - "traefik.http.routers.iam-keycloak.tls.certresolver={{ traefik_certresolver }}"
+      - "traefik.http.services.iam-keycloak.loadbalancer.server.port=8080"
     healthcheck:
-      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/8080 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200 OK'"]
+      test: ["CMD-SHELL", "exec 3<>/dev/tcp/127.0.0.1/9000 && echo -e 'GET /health/ready HTTP/1.1\\r\\nHost: localhost\\r\\nConnection: close\\r\\n\\r\\n' >&3 && cat <&3 | grep -q '200 OK'"]
       interval: 10s
       timeout: 5s
       retries: 30
@@ -43,6 +49,7 @@ services:
         condition: service_healthy
     networks:
       - keycloak_net
+      - "{{ traefik_network }}"
     restart: always
 
 volumes:
@@ -51,3 +58,5 @@ volumes:
 networks:
   keycloak_net:
     driver: bridge
+  {{ traefik_network }}:
+    external: true

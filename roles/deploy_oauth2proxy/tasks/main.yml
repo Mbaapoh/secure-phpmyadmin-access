@@ -1,0 +1,18 @@
+---
+- name: Create OAuth2-Proxy directory
+  file:
+    path: /opt/devops-pma-secure/oauth2-proxy
+    state: directory
+    mode: '0755'
+
+- name: Template oauth2-proxy docker-compose
+  template:
+    src: oauth2-proxy-compose.yml.j2
+    dest: /opt/devops-pma-secure/oauth2-proxy/docker-compose.yml
+
+- name: Deploy OAuth2-Proxy Stack
+  community.docker.docker_compose_v2:
+    project_src: /opt/devops-pma-secure/oauth2-proxy
+    state: present
+    pull: always
+    remove_orphans: true

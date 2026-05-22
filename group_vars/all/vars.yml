@@ -11,6 +11,21 @@ auth_url: "auth.{{ domain_base }}"
 nginx_http_port: 80
 nginx_https_port: 443
 
+# Edge Gateway Selection
+# Set to 'nginx' to deploy Nginx, or 'traefik' for Traefik, or 'none' if you already have a gateway running manually.
+edge_gateway_type: "none" 
+nginx_deploy_mode: "package" # "compose" or "package" (only applies if edge_gateway_type is nginx)
+
+# Hybrid Routing Topology (Used if deploying across multiple hosts, or using Nginx)
+keycloak_backend_ip: "{{ hostvars[groups['iam_keycloak'][0]]['ansible_host'] | default('127.0.0.1') }}"
+oauth2proxy_backend_ip: "{{ hostvars[groups['oauth2_proxy'][0]]['ansible_host'] | default('127.0.0.1') }}"
+pma_backend_ip: "{{ hostvars[groups['app_pma'][0]]['ansible_host'] | default('127.0.0.1') }}"
+jenkins_backend_ip: "{{ hostvars[groups['app_jenkins'][0]]['ansible_host'] | default('127.0.0.1') }}"
+
+# Traefik Integration (Used if Traefik is running on the same host as the containers)
+traefik_network: "fintech-net"
+traefik_certresolver: "myresolver"
+
 # Versions
 keycloak_version: "26.5.0"
 mariadb_version: "11.2"
@@ -31,32 +46,4 @@ keycloak_client_id: "pma-secure-client"
 jenkins_client_id: "jenkins-secure-client"
 jenkins_version: "lts"
 
-# Nginx Reverse Proxy Configuration
-nginx_revproxy_sites:
-  auth:
-    domains:
-      - "{{ auth_url }}"
-    upstreams:
-      - backend_address: "127.0.0.1"
-        backend_port: 8080
-    ssl: true
-    letsencrypt: true
-    letsencrypt_email: "{{ email }}"
-  pma:
-    domains:
-      - "{{ pma_url }}"
-    upstreams:
-      - backend_address: "127.0.0.1"
-        backend_port: 4180
-    ssl: true
-    letsencrypt: true
-    letsencrypt_email: "{{ email }}"
-  jenkins:
-    domains:
-      - "{{ jenkins_url }}"
-    upstreams:
-      - backend_address: "127.0.0.1"
-        backend_port: 4181
-    ssl: true
-    letsencrypt: true
-    letsencrypt_email: "{{ email }}"
+# Nginx configuration removed as routing is now fully handled by Traefik dynamically via Docker labels.

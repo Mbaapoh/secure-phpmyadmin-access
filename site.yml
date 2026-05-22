@@ -1,3 +1,5 @@
----
-- import_playbook: playbooks/nginx_setup.yml
-- import_playbook: playbooks/stack_setup.yml
+- import_playbook: playbooks/deploy_keycloak.yml
+- import_playbook: playbooks/deploy_oauth2proxy.yml
+- import_playbook: playbooks/deploy_pma.yml
+- import_playbook: playbooks/deploy_nginx.yml
+- import_playbook: playbooks/deploy_traefik.yml

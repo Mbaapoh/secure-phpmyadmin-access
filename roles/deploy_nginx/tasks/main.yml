@@ -1,0 +1,31 @@
+---
+- name: Deploy Nginx via System Package
+  include_role:
+    name: ansible-nginx-revproxy
+  when: nginx_deploy_mode == "package"
+
+- name: Deploy Nginx via Docker Compose
+  block:
+    - name: Create Nginx app directory
+      file:
+        path: /opt/devops-pma-secure/nginx
+        state: directory
+        mode: '0755'
+
+    - name: Template nginx docker-compose
+      template:
+        src: nginx-compose.yml.j2
+        dest: /opt/devops-pma-secure/nginx/docker-compose.yml
+
+    - name: Template nginx configurations
+      template:
+        src: nginx.conf.j2
+        dest: /opt/devops-pma-secure/nginx/nginx.conf
+
+    - name: Deploy Nginx Stack
+      community.docker.docker_compose_v2:
+        project_src: /opt/devops-pma-secure/nginx
+        state: present
+        pull: always
+        remove_orphans: true
+  when: nginx_deploy_mode == "compose"

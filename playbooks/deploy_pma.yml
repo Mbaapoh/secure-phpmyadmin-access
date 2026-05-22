@@ -1,0 +1,22 @@
+---
+- name: Deploy Application (phpMyAdmin)
+  hosts: app_pma
+  gather_facts: yes
+  become: yes
+
+  vars_files:
+    - ../group_vars/all/vars.yml
+    - ../group_vars/all/vault.yml
+
+  pre_tasks:
+    - name: Install System Python Packages
+      apt:
+        name:
+          - python3-pip
+          - python3-docker
+        state: present
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+
+  roles:
+    - deploy_pma

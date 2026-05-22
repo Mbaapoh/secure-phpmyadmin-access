@@ -1,0 +1,18 @@
+services:
+  traefik:
+    image: traefik:v2.10
+    command:
+      - "--providers.file.directory=/etc/traefik/dynamic"
+      - "--providers.file.watch=true"
+      - "--entrypoints.web.address=:80"
+      - "--entrypoints.websecure.address=:443"
+      - "--log.level=INFO"
+      - "--accesslog=true"
+    ports:
+      - "0.0.0.0:80:80"
+      - "0.0.0.0:443:443"
+    volumes:
+      - ./dynamic_conf.yml:/etc/traefik/dynamic/dynamic_conf.yml:ro
+      # In a real environment, you'd mount certificates here too
+      #- /etc/traefik/certs:/etc/traefik/certs:ro
+    restart: always

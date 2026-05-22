@@ -1,29 +1,7 @@
 services:
-  mariadb:
-    image: mariadb:{{ mariadb_version }}
-    environment:
-      MYSQL_ROOT_PASSWORD: {{ mysql_root_password }}
-    volumes:
-      - pma_mariadb_data:/var/lib/mysql
-    networks:
-      - pma_net
-    restart: always
-
-  phpmyadmin:
-    image: phpmyadmin:{{ pma_version }}
-    environment:
-      PMA_HOST: mariadb
-      PMA_ARBITRARY: 1
-      PMA_ABSOLUTE_URI: https://{{ pma_url }}/
-    depends_on:
-      - mariadb
-    networks:
-      - pma_net
-    restart: always
-
   oauth2-proxy:
     image: quay.io/oauth2-proxy/oauth2-proxy:{{ oauth2_proxy_version }}
-    command: --http-address=0.0.0.0:4180 --upstream=http://phpmyadmin:80
+    command: --http-address=0.0.0.0:4180 --upstream=static://200
     environment:
       OAUTH2_PROXY_PROVIDER: keycloak-oidc
       OAUTH2_PROXY_CLIENT_ID: {{ keycloak_client_id }}
@@ -41,18 +19,28 @@ services:
       OAUTH2_PROXY_COOKIE_REFRESH: "15m"
       OAUTH2_PROXY_SSL_INSECURE_SKIP_VERIFY: "true" 
       OAUTH2_PROXY_INSECURE_OIDC_ALLOW_UNVERIFIED_EMAIL: "true"
-    networks:
-      - pma_net
-    extra_hosts:
-      - "{{ auth_url }}:host-gateway"
-      - "{{ pma_url }}:host-gateway"
-    restart: always
+      OAUTH2_PROXY_SKIP_PROVIDER_BUTTON: "true"
     ports:
-      - "127.0.0.1:4180:4180"
-
-volumes:
-  pma_mariadb_data:
+      - "0.0.0.0:4180:4180"
+    labels:
+      - "traefik.enable=true"
+      - "traefik.http.routers.iam-oauth2-proxy.rule=Host(`{{ pma_url }}`) && PathPrefix(`/oauth2/`)"
+      - "traefik.http.routers.iam-oauth2-proxy.entrypoints=websecure"
+      - "traefik.http.routers.iam-oauth2-proxy.tls.certresolver={{ traefik_certresolver }}"
+      - "traefik.http.services.iam-oauth2-proxy.loadbalancer.server.port=4180"
+      
+      - "traefik.http.middlewares.iam-oauth2-proxy.forwardauth.address=http://oauth2-proxy:4180/"
+      - "traefik.http.middlewares.iam-oauth2-proxy.forwardauth.trustForwardHeader=true"
+      - "traefik.http.middlewares.iam-oauth2-proxy.forwardauth.authResponseHeaders=X-Auth-Request-User,X-Auth-Request-Email"
+    networks:
+      - oauth2_net
+      - "{{ traefik_network }}"
+    extra_hosts:
+      - "{{ auth_url }}:172.18.0.1"
+    restart: always
 
 networks:
-  pma_net:
+  oauth2_net:
     driver: bridge
+  {{ traefik_network }}:
+    external: true

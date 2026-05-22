@@ -1,0 +1,46 @@
+http:
+  routers:
+    auth-router:
+      rule: "Host(`{{ auth_url }}`)"
+      entryPoints:
+        - "web"
+      service: "keycloak-service"
+
+    pma-oauth2-router:
+      rule: "Host(`{{ pma_url }}`) && PathPrefix(`/oauth2/`)"
+      entryPoints:
+        - "web"
+      service: "oauth2-proxy-service"
+
+    pma-router:
+      rule: "Host(`{{ pma_url }}`)"
+      entryPoints:
+        - "web"
+      service: "pma-service"
+      middlewares:
+        - "forward-auth"
+
+  services:
+    keycloak-service:
+      loadBalancer:
+        servers:
+          - url: "http://{{ keycloak_backend_ip }}:8080"
+          
+    oauth2-proxy-service:
+      loadBalancer:
+        servers:
+          - url: "http://{{ oauth2proxy_backend_ip }}:4180"
+          
+    pma-service:
+      loadBalancer:
+        servers:
+          - url: "http://{{ pma_backend_ip }}:80"
+
+  middlewares:
+    forward-auth:
+      forwardAuth:
+        address: "http://{{ oauth2proxy_backend_ip }}:4180/oauth2/auth"
+        trustForwardHeader: true
+        authResponseHeaders:
+          - "X-Auth-Request-User"
+          - "X-Auth-Request-Email"
