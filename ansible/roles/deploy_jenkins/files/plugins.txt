@@ -9,3 +9,4 @@ configuration-as-code
 matrix-auth
 script-security
 job-dsl
+sonar

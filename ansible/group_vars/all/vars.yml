@@ -10,6 +10,7 @@ jenkins_url: "jenkins.{{ domain_base }}"
 auth_url: "auth.{{ domain_base }}"
 sonar_url: "sonar.{{ domain_base }}"
 sonar_db_password: "sonar_maviance_secure"
+sonar_jenkins_token: "squ_0471f5b4acb95f007c25ff2eaf4ed1e8f915a1d9"
 nginx_http_port: 80
 nginx_https_port: 443
 

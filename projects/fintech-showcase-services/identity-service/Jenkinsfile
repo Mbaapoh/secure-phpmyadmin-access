@@ -1,0 +1,9 @@
+@Library('fintech-shared-library') _
+
+fintechPipeline(
+    projectName: 'Identity-Service',
+    sonarKey: 'fintech-identity-service',
+    serviceDir: 'projects/fintech-showcase-services/identity-service',
+    subdomain: 'identity',
+    internalPort: '3001'
+)

@@ -1,0 +1,9 @@
+@Library('fintech-shared-library') _
+
+fintechPipeline(
+    projectName: 'Ledger-API',
+    sonarKey: 'fintech-ledger-api',
+    serviceDir: 'projects/fintech-showcase-services/ledger-api',
+    subdomain: 'ledger',
+    internalPort: '8082'
+)

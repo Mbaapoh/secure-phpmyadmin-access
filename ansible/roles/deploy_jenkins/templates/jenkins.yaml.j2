@@ -21,7 +21,23 @@ credentials:
               username: "microcks-serviceaccount-test"
               password: "1b4db7eb-4057-5ddf-91e0-36dec72071f5"
               description: "Microcks Keycloak Service Account Credentials"
+          - string:
+              scope: GLOBAL
+              id: "sonar-token"
+              description: "SonarQube Global Token"
+              secret: "{{ sonar_jenkins_token }}"
               
+
+tool:
+  sonarRunnerInstallation:
+    installations:
+      - name: "sonar-scanner"
+        properties:
+          - installSource:
+              installers:
+                - sonarRunnerInstaller:
+                    id: "5.0.1.3006"
+                    
 unclassified:
   globalLibraries:
     libraries:
@@ -33,6 +49,12 @@ unclassified:
             scm:
               git:
                 remote: "https://github.com/Mbaapoh/mbaapoh-devsecops-projects.git"
+  sonarGlobalConfiguration:
+    buildWrapperEnabled: true
+    installations:
+      - credentialsId: "sonar-token"
+        name: "sonar-server"
+        serverUrl: "https://{{ sonar_url }}"
   microcksGlobalConfiguration:
     microcksInstallations:
       - microcksDisplayName: "microcks-cloud"

@@ -1,0 +1,12 @@
+// This Jenkinsfile follows the 'Governance-as-an-Interface' model.
+// The actual logic is managed by the DevOps Security Team in the Shared Library.
+
+@Library('fintech-shared-library') _
+
+fintechPipeline(
+    projectName: 'Payment-Gateway',
+    sonarKey: 'fintech-payment-gateway',
+    serviceDir: 'projects/fintech-showcase-services/payment-gateway',
+    subdomain: 'payment',
+    internalPort: '8081'
+)

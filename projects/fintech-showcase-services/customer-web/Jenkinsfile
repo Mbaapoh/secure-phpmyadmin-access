@@ -1,0 +1,9 @@
+@Library('fintech-shared-library') _
+
+fintechPipeline(
+    projectName: 'Customer-Web',
+    sonarKey: 'fintech-customer-web',
+    serviceDir: 'projects/fintech-showcase-services/customer-web',
+    subdomain: 'customer',
+    internalPort: '3000'
+)
