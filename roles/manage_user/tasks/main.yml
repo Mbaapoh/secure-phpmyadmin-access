@@ -39,7 +39,6 @@
         value: "{{ target_password }}"
         temporary: false
     groups: "{{ target_groups | default([{'name': 'Auditors'}]) }}"
-    required_actions:
-      - CONFIGURE_TOTP
+    required_actions: "{{ ['CONFIGURE_TOTP'] if require_otp | default(true) | bool else [] }}"
     state: "{{ target_state | default('present') }}"
   when: target_state | default('present') == 'present'

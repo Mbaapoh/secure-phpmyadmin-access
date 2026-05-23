@@ -20,7 +20,14 @@ ansible-playbook playbooks/manage_user.yml -i inventory/hosts.ini --vault-passwo
   -e "target_username=mbaapoh target_password=MbaapohPassword237! reset_otp=true"
 ```
 
-### 3. Delete a User
+### 3. Add a User Without OTP
+If you want to create a service account or simply don't want MFA for a specific user:
+```bash
+ansible-playbook playbooks/manage_user.yml -i inventory/hosts.ini --vault-password-file .vault_pass \
+  -e "target_username=no_mfa_user target_password=SuperSecret123! require_otp=false"
+```
+
+### 4. Delete a User
 To completely remove a user from the system:
 ```bash
 ansible-playbook playbooks/manage_user.yml -i inventory/hosts.ini --vault-password-file .vault_pass \
@@ -36,5 +43,6 @@ ansible-playbook playbooks/manage_user.yml -i inventory/hosts.ini --vault-passwo
 | `target_email` | `<username>@demo.okay.cm` | The email for the user |
 | `target_firstname` | `<username>` | The first name |
 | `target_lastname` | `User` | The last name |
+| `require_otp` | `true` | If `true`, forces the user to configure Google Authenticator on their next login |
 | `reset_otp` | `false` | If `true`, deletes the user before recreating them to reset the Google Authenticator requirement |
 | `target_state` | `present` | Use `absent` to delete the user entirely |
