@@ -1,0 +1,45 @@
+---
+- name: Wait for Keycloak authentication to be available
+  uri:
+    url: "http://localhost:8080/realms/master"
+    status_code: 200
+  register: kc_ready
+  until: kc_ready.status == 200
+  retries: 20
+  delay: 5
+
+- name: Delete User ({{ target_username }}) if reset_otp is true
+  community.general.keycloak_user:
+    auth_client_id: admin-cli
+    auth_keycloak_url: http://localhost:8080
+    auth_realm: master
+    auth_username: "{{ keycloak_admin_user }}"
+    auth_password: "{{ keycloak_admin_password }}"
+    realm: "{{ keycloak_realm }}"
+    username: "{{ target_username }}"
+    state: absent
+  when: reset_otp | default(false) | bool
+
+- name: Manage Keycloak User ({{ target_username }})
+  community.general.keycloak_user:
+    auth_client_id: admin-cli
+    auth_keycloak_url: http://localhost:8080
+    auth_realm: master
+    auth_username: "{{ keycloak_admin_user }}"
+    auth_password: "{{ keycloak_admin_password }}"
+    realm: "{{ keycloak_realm }}"
+    username: "{{ target_username }}"
+    enabled: true
+    emailVerified: true
+    email: "{{ target_email | default(target_username + '@demo.okay.cm') }}"
+    firstName: "{{ target_firstname | default(target_username) }}"
+    lastName: "{{ target_lastname | default('User') }}"
+    credentials:
+      - type: password
+        value: "{{ target_password }}"
+        temporary: false
+    groups: "{{ target_groups | default([{'name': 'Auditors'}]) }}"
+    required_actions:
+      - CONFIGURE_TOTP
+    state: "{{ target_state | default('present') }}"
+  when: target_state | default('present') == 'present'
