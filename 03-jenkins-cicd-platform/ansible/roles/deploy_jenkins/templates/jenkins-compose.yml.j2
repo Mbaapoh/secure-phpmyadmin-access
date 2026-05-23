@@ -21,9 +21,6 @@ services:
       - "traefik.http.routers.jenkins.entrypoints=websecure"
       - "traefik.http.routers.jenkins.tls.certresolver={{ traefik_certresolver }}"
       - "traefik.http.services.jenkins.loadbalancer.server.port=8080"
-      
-      # Protect Jenkins with the Central OAuth2-Proxy Middleware
-      - "traefik.http.routers.jenkins.middlewares=iam-oauth2-proxy@docker"
     networks:
       - {{ traefik_network }}
       - jenkins_net
