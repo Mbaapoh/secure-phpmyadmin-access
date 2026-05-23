@@ -23,6 +23,16 @@ credentials:
               description: "Microcks Keycloak Service Account Credentials"
               
 unclassified:
+  globalLibraries:
+    libraries:
+      - name: "fintech-shared-library"
+        defaultVersion: "feature/stateful-mocking"
+        implicit: false
+        retriever:
+          modernSCM:
+            scm:
+              git:
+                remote: "https://github.com/Mbaapoh/mbaapoh-devsecops-projects.git"
   microcksGlobalConfiguration:
     microcksInstallations:
       - microcksDisplayName: "microcks-cloud"
@@ -39,7 +49,7 @@ jobs:
             scm {
               git {
                 remote {
-                  url('https://github.com/Mbaapoh/secure-phpmyadmin-access.git')
+                  url('https://github.com/Mbaapoh/mbaapoh-devsecops-projects.git')
                 }
                 branch('feature/stateful-mocking')
               }
