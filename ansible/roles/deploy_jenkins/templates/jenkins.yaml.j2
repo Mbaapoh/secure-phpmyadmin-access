@@ -83,3 +83,23 @@ jobs:
           githubPush()
         }
       }
+      
+      ['identity-service', 'ledger-api', 'customer-web', 'payment-gateway'].each { service ->
+        pipelineJob("showcase-${service}") {
+          description("SonarQube Inspection Pipeline for ${service}")
+          definition {
+            cpsScm {
+              scm {
+                git {
+                  remote { url('https://github.com/Mbaapoh/mbaapoh-devsecops-projects.git') }
+                  branch('feature/stateful-mocking')
+                }
+              }
+              scriptPath("projects/fintech-showcase-services/${service}/Jenkinsfile")
+            }
+          }
+          triggers {
+            githubPush()
+          }
+        }
+      }
