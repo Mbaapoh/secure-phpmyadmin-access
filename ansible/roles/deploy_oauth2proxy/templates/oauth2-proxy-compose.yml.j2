@@ -25,6 +25,7 @@ services:
       - "0.0.0.0:4180:4180"
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network={{ traefik_network }}"
       - "traefik.http.routers.iam-oauth2-proxy.rule=Host(`{{ pma_url }}`) && PathPrefix(`/oauth2/`)"
       - "traefik.http.routers.iam-oauth2-proxy.entrypoints=websecure"
       - "traefik.http.routers.iam-oauth2-proxy.tls.certresolver={{ traefik_certresolver }}"
@@ -36,6 +37,8 @@ services:
     networks:
       - oauth2_net
       - "{{ traefik_network }}"
+    extra_hosts:
+      - "auth.{{ domain_base }}:host-gateway"
     restart: always
 
 networks:

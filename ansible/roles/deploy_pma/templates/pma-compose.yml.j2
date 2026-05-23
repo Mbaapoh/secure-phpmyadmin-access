@@ -19,6 +19,7 @@ services:
       - "0.0.0.0:8081:80" # Exposed on 8081 so it doesn't conflict with Gateway port 80
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network={{ traefik_network }}"
       - "traefik.http.routers.iam-pma.rule=Host(`{{ pma_url }}`)"
       - "traefik.http.routers.iam-pma.entrypoints=websecure"
       - "traefik.http.routers.iam-pma.tls.certresolver={{ traefik_certresolver }}"

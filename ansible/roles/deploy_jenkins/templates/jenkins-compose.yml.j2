@@ -16,6 +16,7 @@ services:
       - "8082:8080" # Standard port for external routing/nginx
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network={{ traefik_network }}"
       # Universal routing configuration via Traefik (if deployed)
       - "traefik.http.routers.jenkins.rule=Host(`{{ jenkins_url }}`)"
       - "traefik.http.routers.jenkins.entrypoints=websecure"
@@ -24,6 +25,9 @@ services:
     networks:
       - {{ traefik_network }}
       - jenkins_net
+    extra_hosts:
+      - "auth.{{ domain_base }}:host-gateway"
+      - "microcks.{{ domain_base }}:host-gateway"
     restart: unless-stopped
 
 networks:

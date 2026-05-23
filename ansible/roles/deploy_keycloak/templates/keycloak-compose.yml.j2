@@ -36,6 +36,7 @@ services:
       - "0.0.0.0:8080:8080" # Exposed to all interfaces so external Nginx or cross-host Traefik can route to it
     labels:
       - "traefik.enable=true"
+      - "traefik.docker.network={{ traefik_network }}"
       - "traefik.http.routers.iam-keycloak.rule=Host(`{{ auth_url }}`)"
       - "traefik.http.routers.iam-keycloak.entrypoints=websecure"
       - "traefik.http.routers.iam-keycloak.tls.certresolver={{ traefik_certresolver }}"
