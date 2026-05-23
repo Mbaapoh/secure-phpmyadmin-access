@@ -8,6 +8,8 @@ email: "admin@{{ domain_base }}"
 pma_url: "pma.{{ domain_base }}"
 jenkins_url: "jenkins.{{ domain_base }}"
 auth_url: "auth.{{ domain_base }}"
+sonar_url: "sonar.{{ domain_base }}"
+sonar_db_password: "sonar_maviance_secure"
 nginx_http_port: 80
 nginx_https_port: 443
 

@@ -1,0 +1,26 @@
+---
+- name: Create SonarQube app directory
+  ansible.builtin.file:
+    path: "/opt/docker/sonarqube"
+    state: directory
+    mode: '0755'
+
+- name: Template SonarQube docker-compose
+  ansible.builtin.template:
+    src: sonarqube-compose.yml.j2
+    dest: "/opt/docker/sonarqube/docker-compose.yml"
+    mode: '0644'
+
+- name: Set vm.max_map_count for SonarQube Elasticsearch
+  ansible.posix.sysctl:
+    name: vm.max_map_count
+    value: '262144'
+    state: present
+    sysctl_set: yes
+
+- name: Deploy SonarQube Stack
+  community.docker.docker_compose_v2:
+    project_src: "/opt/docker/sonarqube"
+    state: present
+    pull: always
+    remove_orphans: true

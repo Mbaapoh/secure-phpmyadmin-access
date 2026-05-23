@@ -1,0 +1,50 @@
+services:
+  sonarqube:
+    image: sonarqube:community
+    container_name: sonarqube
+    depends_on:
+      - sonar-db
+    environment:
+      - SONAR_JDBC_URL=jdbc:postgresql://sonar-db:5432/sonar
+      - SONAR_JDBC_USERNAME={{ postgres_user | default('sonar') }}
+      - SONAR_JDBC_PASSWORD={{ sonar_db_password }}
+    volumes:
+      - sonar-data:/opt/sonarqube/data
+      - sonar-extensions:/opt/sonarqube/extensions
+      - sonar-logs:/opt/sonarqube/logs
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network={{ traefik_network }}"
+      - "traefik.http.routers.iam-sonarqube.rule=Host(`{{ sonar_url }}`)"
+      - "traefik.http.routers.iam-sonarqube.entrypoints=websecure"
+      - "traefik.http.routers.iam-sonarqube.tls.certresolver={{ traefik_certresolver }}"
+      - "traefik.http.services.iam-sonarqube.loadbalancer.server.port=9000"
+    networks:
+      - sonar_net
+      - "{{ traefik_network }}"
+    restart: always
+
+  sonar-db:
+    image: postgres:17
+    container_name: sonar_db
+    environment:
+      - POSTGRES_USER={{ postgres_user | default('sonar') }}
+      - POSTGRES_PASSWORD={{ sonar_db_password }}
+      - POSTGRES_DB=sonar
+    volumes:
+      - sonar-postgres-data:/var/lib/postgresql/data
+    networks:
+      - sonar_net
+    restart: always
+
+volumes:
+  sonar-data:
+  sonar-extensions:
+  sonar-logs:
+  sonar-postgres-data:
+
+networks:
+  sonar_net:
+    driver: bridge
+  {{ traefik_network }}:
+    external: true

@@ -5,3 +5,6 @@ __pycache__
 *.pyc
 .idea/
 .vscode/
+projects/sonarqube-inspection/sonar-data
+projects/sonarqube-inspection/sonar-logs
+projects/sonarqube-inspection/postgres-data
