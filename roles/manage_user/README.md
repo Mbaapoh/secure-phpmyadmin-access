@@ -6,29 +6,54 @@ This role allows you to quickly add, delete, or reset the OTP for a user in Keyc
 
 Run these commands from the root directory (`/Users/macuser/mbaapoh-devops/secure-phpmyadmin-access`).
 
-### 1. Add a New User
-To add a new user and force them to setup Google Authenticator (OTP) on their first login:
+### 1. Declarative Approach (Recommended)
+You can define a list of users in your `group_vars/all/vars.yml` and the role will automatically create and enforce them. This is the true GitOps approach.
+
+Add this list to your variables:
+```yaml
+keycloak_users:
+  - username: "alice"
+    password: "AlicePassword123!"
+    email: "alice@demo.okay.cm"
+    firstname: "Alice"
+    lastname: "Smith"
+    require_otp: true
+    state: present
+  - username: "bob_service_account"
+    password: "BobPassword123!"
+    require_otp: false
+```
+Then simply run:
+```bash
+ansible-playbook playbooks/manage_user.yml -i inventory/hosts.ini --vault-password-file .vault_pass
+```
+
+---
+
+### 2. Imperative Approach (Ad-hoc Command Line)
+If you don't want to save the user in code, you can pass variables directly on the command line.
+
+**Add a New User (Requires them to set up Google Authenticator):**
 ```bash
 ansible-playbook playbooks/manage_user.yml -i inventory/hosts.ini --vault-password-file .vault_pass \
   -e "target_username=johndoe target_password=SuperSecret123! target_email=johndoe@demo.okay.cm target_firstname=John target_lastname=Doe"
 ```
 
-### 2. Reset a User's OTP
-If a user loses their phone or gets stuck on the OTP code screen, you can reset them. By setting `reset_otp=true`, Ansible will delete the user and immediately recreate them, restoring the QR Code setup screen on their next login.
-```bash
-ansible-playbook playbooks/manage_user.yml -i inventory/hosts.ini --vault-password-file .vault_pass \
-  -e "target_username=mbaapoh target_password=MbaapohPassword237! reset_otp=true"
-```
-
-### 3. Add a User Without OTP
+**Add a User Without OTP:**
 If you want to create a service account or simply don't want MFA for a specific user:
 ```bash
 ansible-playbook playbooks/manage_user.yml -i inventory/hosts.ini --vault-password-file .vault_pass \
   -e "target_username=no_mfa_user target_password=SuperSecret123! require_otp=false"
 ```
 
-### 4. Delete a User
-To completely remove a user from the system:
+**Reset an Existing User's OTP:**
+*(If someone loses their phone, this safely deletes and recreates them, restoring the QR Code prompt).*
+```bash
+ansible-playbook playbooks/manage_user.yml -i inventory/hosts.ini --vault-password-file .vault_pass \
+  -e "target_username=mbaapoh target_password=NewPassword237! reset_otp=true"
+```
+
+**Delete a User:**
 ```bash
 ansible-playbook playbooks/manage_user.yml -i inventory/hosts.ini --vault-password-file .vault_pass \
   -e "target_username=johndoe target_state=absent"
