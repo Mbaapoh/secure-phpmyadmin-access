@@ -22,9 +22,15 @@ Contains the code, pipelines, and specs that run *on* the deployed infrastructur
    ```bash
    cd ansible
    ```
-2. Run any playbook you need! To spin up the foundational routing and identity layer:
+2. Run any playbook you need! To spin up the foundational routing and identity layer, choose an Edge Router (Traefik is recommended) and Keycloak:
    ```bash
+   # Option A: Traefik (Recommended)
    ansible-playbook playbooks/00-deploy_traefik.yml --vault-password-file ../.vault_pass
+   
+   # Option B: Nginx (Alternative)
+   # ansible-playbook playbooks/00-deploy_nginx.yml --vault-password-file ../.vault_pass
+   
+   # Then deploy the SSO Platform:
    ansible-playbook playbooks/01-deploy_keycloak.yml --vault-password-file ../.vault_pass
    ```
 3. To spin up specific tool platforms:
