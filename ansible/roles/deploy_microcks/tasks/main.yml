@@ -1,0 +1,24 @@
+- name: Create Microcks app directory
+  ansible.builtin.file:
+    path: "/opt/docker/microcks"
+    state: directory
+    mode: '0755'
+
+- name: Create Microcks config directory
+  ansible.builtin.file:
+    path: "/opt/docker/microcks/microcks-config"
+    state: directory
+    mode: '0755'
+
+- name: Template microcks docker-compose
+  ansible.builtin.template:
+    src: microcks-compose.yml.j2
+    dest: "/opt/docker/microcks/docker-compose.yml"
+    mode: '0644'
+
+- name: Deploy Microcks Stack
+  community.docker.docker_compose_v2:
+    project_src: "/opt/docker/microcks"
+    state: present
+    pull: always
+    remove_orphans: true

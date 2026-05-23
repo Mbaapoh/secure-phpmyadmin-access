@@ -1,0 +1,53 @@
+jenkins:
+  systemMessage: "Enterprise API Platform Infrastructure — Managed by Ansible & GitOps"
+  numExecutors: 2
+  securityRealm:
+    local:
+      allowsSignup: false
+      users:
+        - id: "admin"
+          password: "${JENKINS_ADMIN_PASSWORD}"
+  authorizationStrategy:
+    loggedInUsersCanDoAnything:
+      allowAnonymousRead: false
+
+credentials:
+  system:
+    domainCredentials:
+      - credentials:
+          - usernamePassword:
+              scope: GLOBAL
+              id: "microcks-creds"
+              username: "microcks-serviceaccount-test"
+              password: "1b4db7eb-4057-5ddf-91e0-36dec72071f5"
+              description: "Microcks Keycloak Service Account Credentials"
+              
+unclassified:
+  microcksGlobalConfiguration:
+    microcksInstallations:
+      - microcksDisplayName: "microcks-cloud"
+        microcksApiURL: "https://microcks.{{ domain_base }}/api"
+        microcksCredentialsId: "microcks-creds"
+        disableSSLValidation: true
+
+jobs:
+  - script: >
+      pipelineJob('microcks-api-contract-sync') {
+        description('Enterprise API Contract Synchronizer - Automated Mock Deployment')
+        definition {
+          cpsScm {
+            scm {
+              git {
+                remote {
+                  url('https://github.com/Mbaapoh/secure-phpmyadmin-access.git')
+                }
+                branch('feature/stateful-mocking')
+              }
+            }
+            scriptPath('projects/jenkins-cicd/Jenkinsfile')
+          }
+        }
+        triggers {
+          githubPush()
+        }
+      }

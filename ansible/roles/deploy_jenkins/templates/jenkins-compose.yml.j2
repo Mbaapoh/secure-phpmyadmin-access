@@ -1,0 +1,40 @@
+services:
+  jenkins:
+    build:
+      context: .
+      dockerfile: Jenkins.Dockerfile
+    container_name: jenkins
+    user: root # For simplicity in this demo, allows writing to docker socket if needed
+    environment:
+      - JENKINS_ADMIN_PASSWORD={{ jenkins_client_secret }}
+      - MICROCKS_SERVICE_ACCOUNT_SECRET=ab54d329-e435-41ae-a900-ec6b3fe15c54
+      - JAVA_OPTS=-Djenkins.install.runSetupWizard=false
+      - JENKINS_OPTS=--requestHeaderSize=32768
+    volumes:
+      - jenkins_home:/var/jenkins_home
+    ports:
+      - "8082:8080" # Standard port for external routing/nginx
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network={{ traefik_network }}"
+      # Universal routing configuration via Traefik (if deployed)
+      - "traefik.http.routers.jenkins.rule=Host(`{{ jenkins_url }}`)"
+      - "traefik.http.routers.jenkins.entrypoints=websecure"
+      - "traefik.http.routers.jenkins.tls.certresolver={{ traefik_certresolver }}"
+      - "traefik.http.services.jenkins.loadbalancer.server.port=8080"
+    networks:
+      - {{ traefik_network }}
+      - jenkins_net
+    extra_hosts:
+      - "auth.{{ domain_base }}:host-gateway"
+      - "microcks.{{ domain_base }}:host-gateway"
+    restart: unless-stopped
+
+networks:
+  jenkins_net:
+    driver: bridge
+  {{ traefik_network }}:
+    external: true
+
+volumes:
+  jenkins_home:

@@ -1,0 +1,91 @@
+---
+- name: Wait for Keycloak authentication to be available
+  uri:
+    url: "http://localhost:8080/realms/master"
+    status_code: 200
+  register: kc_ready
+  until: kc_ready.status == 200
+  retries: 20
+  delay: 5
+
+# ==========================================
+# 1. Declarative Approach (Loop over list)
+# ==========================================
+- name: Delete Declarative Users if reset_otp is true
+  community.general.keycloak_user:
+    auth_client_id: admin-cli
+    auth_keycloak_url: http://localhost:8080
+    auth_realm: master
+    auth_username: "{{ keycloak_admin_user }}"
+    auth_password: "{{ keycloak_admin_password }}"
+    realm: "{{ keycloak_realm }}"
+    username: "{{ item.username }}"
+    state: absent
+  loop: "{{ keycloak_users }}"
+  when: item.reset_otp | default(false) | bool
+
+- name: Manage Declarative Keycloak Users
+  community.general.keycloak_user:
+    auth_client_id: admin-cli
+    auth_keycloak_url: http://localhost:8080
+    auth_realm: master
+    auth_username: "{{ keycloak_admin_user }}"
+    auth_password: "{{ keycloak_admin_password }}"
+    realm: "{{ keycloak_realm }}"
+    username: "{{ item.username }}"
+    enabled: true
+    emailVerified: true
+    email: "{{ item.email | default(item.username + '@demo.okay.cm') }}"
+    firstName: "{{ item.firstname | default(item.username) }}"
+    lastName: "{{ item.lastname | default('User') }}"
+    credentials:
+      - type: password
+        value: "{{ item.password }}"
+        temporary: false
+    groups: "{{ item.groups | default([{'name': 'Auditors'}]) }}"
+    required_actions: "{{ ['CONFIGURE_TOTP'] if item.require_otp | default(true) | bool else [] }}"
+    state: "{{ item.state | default('present') }}"
+  loop: "{{ keycloak_users }}"
+  when: item.state | default('present') == 'present'
+
+# ==========================================
+# 2. Imperative Approach (Single user via extra-vars)
+# ==========================================
+- name: Delete Imperative User ({{ target_username }}) if reset_otp is true
+  community.general.keycloak_user:
+    auth_client_id: admin-cli
+    auth_keycloak_url: http://localhost:8080
+    auth_realm: master
+    auth_username: "{{ keycloak_admin_user }}"
+    auth_password: "{{ keycloak_admin_password }}"
+    realm: "{{ keycloak_realm }}"
+    username: "{{ target_username }}"
+    state: absent
+  when: 
+    - target_username | length > 0
+    - reset_otp | bool
+
+- name: Manage Imperative Keycloak User ({{ target_username }})
+  community.general.keycloak_user:
+    auth_client_id: admin-cli
+    auth_keycloak_url: http://localhost:8080
+    auth_realm: master
+    auth_username: "{{ keycloak_admin_user }}"
+    auth_password: "{{ keycloak_admin_password }}"
+    realm: "{{ keycloak_realm }}"
+    username: "{{ target_username }}"
+    enabled: true
+    emailVerified: true
+    email: "{{ target_email }}"
+    firstName: "{{ target_firstname }}"
+    lastName: "{{ target_lastname }}"
+    credentials:
+      - type: password
+        value: "{{ target_password }}"
+        temporary: false
+    groups: "{{ target_groups }}"
+    required_actions: "{{ ['CONFIGURE_TOTP'] if require_otp | bool else [] }}"
+    state: "{{ target_state }}"
+  when: 
+    - target_username | length > 0
+    - target_state == 'present'

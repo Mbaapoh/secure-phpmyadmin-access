@@ -1,0 +1,42 @@
+services:
+  mariadb:
+    image: mariadb:{{ mariadb_version }}
+    environment:
+      MYSQL_ROOT_PASSWORD: {{ mysql_root_password }}
+    volumes:
+      - pma_mariadb_data:/var/lib/mysql
+    networks:
+      - pma_net
+    restart: always
+
+  phpmyadmin:
+    image: phpmyadmin:{{ pma_version }}
+    environment:
+      PMA_HOST: mariadb
+      PMA_ARBITRARY: 1
+      PMA_ABSOLUTE_URI: https://{{ pma_url }}/
+    ports:
+      - "0.0.0.0:8081:80" # Exposed on 8081 so it doesn't conflict with Gateway port 80
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network={{ traefik_network }}"
+      - "traefik.http.routers.iam-pma.rule=Host(`{{ pma_url }}`)"
+      - "traefik.http.routers.iam-pma.entrypoints=websecure"
+      - "traefik.http.routers.iam-pma.tls.certresolver={{ traefik_certresolver }}"
+      - "traefik.http.routers.iam-pma.middlewares=iam-oauth2-proxy"
+      - "traefik.http.services.iam-pma.loadbalancer.server.port=80"
+    depends_on:
+      - mariadb
+    networks:
+      - pma_net
+      - "{{ traefik_network }}"
+    restart: always
+
+volumes:
+  pma_mariadb_data:
+
+networks:
+  pma_net:
+    driver: bridge
+  {{ traefik_network }}:
+    external: true

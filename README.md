@@ -1,79 +1,42 @@
-# Secure phpMyAdmin with MFA & Keycloak
+# DevSecOps Reference Architecture Showcase
 
-**Project Name:** `secure-phpmyadmin-access`
+Welcome to the Fintech DevSecOps Showcase Repository! This repository demonstrates a highly scalable, modular infrastructure. It features a **Centralized Ansible Control Plane** governing isolated application projects.
 
-This project deploys a secure, containerized **phpMyAdmin** instance protected by:
-- **Nginx Reverse Proxy** with SSL/TLS (Let's Encrypt).
-- **Keycloak** for Identity and Access Management (IAM).
-- **OAuth2-Proxy** for enforcing authentication before access.
-- **MFA (TOTP)** required for all users.
+## 📁 Repository Structure
 
-## Architecture
+### `/ansible` (The Control Plane)
+Contains all infrastructure-as-code for the platform. This serves as the single source of truth for your entire cluster.
+* `/ansible/inventory/`: The unified inventory file.
+* `/ansible/group_vars/`: The unified secrets and variables.
+* `/ansible/roles/`: All isolated roles (`deploy_traefik`, `deploy_keycloak`, `deploy_microcks`, `deploy_jenkins`, etc.).
+* `/ansible/playbooks/`: Individual deployment playbooks. 
 
-```mermaid
-graph TD
-    User((User)) -->|HTTPS| Nginx[Nginx Reverse Proxy]
-    Nginx -->|Auth Check| OAuth2[OAuth2-Proxy]
-    OAuth2 -->|OIDC| Keycloak[Keycloak IAM]
-    OAuth2 -->|Allowed| PMA[phpMyAdmin]
-    PMA -->|SQL| DB[(MariaDB / MySQL)]
-    Keycloak -->|SQL| Postgres[(PostgreSQL DB)]
-```
+### `/projects` (The Application Plane)
+Contains the code, pipelines, and specs that run *on* the deployed infrastructure.
+* `/projects/api-mocking/`: Contains the OpenAPI specs for Microcks.
+* `/projects/jenkins-cicd/`: Contains Jenkinsfiles and your Jenkins Shared Library.
+* `/projects/secure-phpmyadmin-access/`: An isolated demo project showing how to protect a legacy web app with OAuth2-Proxy.
 
-## Prerequisites
-
-- Ansible 2.9+
-- Ubuntu 20.04/22.04/24.04 Target Host
-- Domain Name pointed to the host (e.g., `pma.demo.okay.cm`, `auth.demo.okay.cm`)
-
-## Directory Structure
-
-- `inventory/`: Host definitions.
-- `group_vars/`: Configuration variables.
-  - `all/vars.yml`: General configuration (Ports, Versions).
-  - `all/vault.yml`: Encrypted secrets.
-- `playbooks/`: Ansible playbooks.
-- `roles/`: Ansible roles for modular deployment.
-
-## 🚀 Deployment Cheat Sheet
-
-### 1. Full Deployment (Recommended)
-Deploys everything: Nginx, Certbot, Keycloak, phpMyAdmin, and OAuth2-Proxy.
-```bash
-ansible-playbook -i inventory/hosts.ini site.yml --vault-password-file .vault_pass
-```
-
-### 2. Partial Deployments
-**Deploy Application Stack Only** (Keycloak, PMA, OAuth2-Proxy):
-Use this when updating application configuration or Docker images.
-```bash
-ansible-playbook -i inventory/hosts.ini playbooks/stack_setup.yml --vault-password-file .vault_pass
-```
-
-**Deploy Nginx Only** (Reverse Proxy & SSL):
-Use this when updating simple Nginx routing or hardening rules.
-```bash
-ansible-playbook -i inventory/hosts.ini playbooks/nginx_setup.yml --vault-password-file .vault_pass
-```
-
-### 3. Manage Secrets
-Edit encrypted variables (database passwords, client secrets):
-```bash
-ansible-vault edit group_vars/all/vault.yml --vault-password-file .vault_pass
-```
-
-## Access & MFA Setup
-
-1.  **Keycloak Admin Console**: `https://auth.yourdomain.com/` (User: `admin`)
-2.  **Access phpMyAdmin**: `https://pma.yourdomain.com/`
-    *   **Step 1: MFA Gate** (Keycloak)
-        *   Login with **Username**: `pma_admin` (Managed in Ansible)
-        *   **First Login**: Setup Mobile Authenticator (OTP). Scan QR code and enter code.
-    *   **Step 2: Database Login** (phpMyAdmin)
-        *   After passing MFA, you will see the phpMyAdmin login screen.
-        *   Log in using your **Database Credentials** (e.g., `root` and the `mysql_root_password` defined in vault).
-
-## Troubleshooting
-
-- **Invalid Code (MFA)**: Ensure your Authenticator App time matches the server time. The server tolerates a small window of drift.
-- **500 Error**: Check Keycloak logs: `docker logs devops-pma-secure-keycloak-1`.
+## 🚀 How to Deploy
+1. Navigate to the `ansible` directory:
+   ```bash
+   cd ansible
+   ```
+2. Run any playbook you need! To spin up the foundational routing and identity layer, choose an Edge Router (Traefik is recommended) and Keycloak:
+   ```bash
+   # Option A: Traefik (Recommended)
+   ansible-playbook playbooks/00-deploy_traefik.yml --vault-password-file ../.vault_pass
+   
+   # Option B: Nginx (Alternative)
+   # ansible-playbook playbooks/00-deploy_nginx.yml --vault-password-file ../.vault_pass
+   
+   # Then deploy the SSO Platform:
+   ansible-playbook playbooks/01-deploy_keycloak.yml --vault-password-file ../.vault_pass
+   ```
+3. To spin up specific tool platforms:
+   ```bash
+   ansible-playbook playbooks/02-deploy_jenkins.yml --vault-password-file ../.vault_pass
+   ansible-playbook playbooks/03-deploy_microcks.yml --vault-password-file ../.vault_pass
+   ansible-playbook playbooks/04-deploy_oauth2proxy.yml --vault-password-file ../.vault_pass
+   ansible-playbook playbooks/05-deploy_pma.yml --vault-password-file ../.vault_pass
+   ```

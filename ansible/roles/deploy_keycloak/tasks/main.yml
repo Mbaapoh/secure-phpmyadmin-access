@@ -1,0 +1,37 @@
+---
+- name: Create Keycloak app directory
+  file:
+    path: /opt/devops-pma-secure/keycloak
+    state: directory
+    mode: '0755'
+
+- name: Template keycloak docker-compose
+  ansible.builtin.template:
+    src: keycloak-compose.yml.j2
+    dest: /opt/devops-pma-secure/keycloak/docker-compose.yml
+    mode: '0644'
+
+- name: Create import directory
+  ansible.builtin.file:
+    path: /opt/devops-pma-secure/keycloak/data/import
+    state: directory
+    mode: '0755'
+
+- name: Template Microcks Realm
+  ansible.builtin.template:
+    src: microcks-realm.json.j2
+    dest: /opt/devops-pma-secure/keycloak/data/import/microcks-realm.json
+    mode: '0644'
+
+- name: Deploy Keycloak Stack
+  community.docker.docker_compose_v2:
+    project_src: /opt/devops-pma-secure/keycloak
+    state: present
+    pull: always
+    remove_orphans: true
+
+- name: Wait for Keycloak port open
+  wait_for:
+    host: "{{ keycloak_backend_ip }}"
+    port: 8080
+    timeout: 300

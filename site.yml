@@ -1,3 +1,0 @@
----
-- import_playbook: playbooks/nginx_setup.yml
-- import_playbook: playbooks/stack_setup.yml

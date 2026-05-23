@@ -1,0 +1,34 @@
+---
+- name: Create Jenkins app directory
+  ansible.builtin.file:
+    path: "/opt/docker/jenkins"
+    state: directory
+    mode: '0755'
+
+- name: Template jenkins docker-compose
+  ansible.builtin.template:
+    src: "{{ item }}"
+    dest: "/opt/docker/jenkins/{{ item | regex_replace('\\.j2$', '') }}"
+    mode: '0644'
+  loop:
+    - jenkins-compose.yml.j2
+    - Jenkins.Dockerfile.j2
+    - jenkins.yaml.j2
+    - jobs.groovy.j2
+  notify: Restart Jenkins
+
+- name: Copy plugins.txt
+  ansible.builtin.copy:
+    src: files/plugins.txt
+    dest: "/opt/docker/jenkins/plugins.txt"
+    mode: '0644'
+  notify: Restart Jenkins
+
+
+- name: Deploy Jenkins Stack
+  community.docker.docker_compose_v2:
+    project_src: "/opt/docker/jenkins"
+    files:
+      - "jenkins-compose.yml"
+    state: present
+    build: always

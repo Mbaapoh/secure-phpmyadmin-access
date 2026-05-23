@@ -1,0 +1,23 @@
+---
+- name: Create Traefik app directory
+  file:
+    path: /opt/devops-pma-secure/traefik
+    state: directory
+    mode: '0755'
+
+- name: Template traefik docker-compose
+  template:
+    src: docker-compose.yml.j2
+    dest: /opt/devops-pma-secure/traefik/docker-compose.yml
+
+- name: Template traefik dynamic config
+  template:
+    src: dynamic_conf.yml.j2
+    dest: /opt/devops-pma-secure/traefik/dynamic_conf.yml
+
+- name: Deploy Traefik Stack
+  community.docker.docker_compose_v2:
+    project_src: /opt/devops-pma-secure/traefik
+    state: present
+    pull: always
+    remove_orphans: true

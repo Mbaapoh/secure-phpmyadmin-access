@@ -1,0 +1,29 @@
+---
+# Declarative User Management List
+# You can add users here to have them automatically created/managed by the role
+# instead of using the command line imperative approach.
+keycloak_users: []
+# Example:
+#  - username: "johndoe"
+#    password: "Password123!"
+#    email: "johndoe@demo.okay.cm"
+#    firstname: "John"
+#    lastname: "Doe"
+#    require_otp: true
+#    reset_otp: false
+#    state: present
+#    groups:
+#      - name: "Auditors"
+
+# Fallback defaults for the imperative (command line) approach
+# (used when passing -e "target_username=...")
+target_username: ""
+target_password: ""
+reset_otp: false
+require_otp: true
+target_state: "present"
+target_email: "{{ target_username }}@demo.okay.cm"
+target_firstname: "{{ target_username }}"
+target_lastname: "User"
+target_groups:
+  - name: "Auditors"

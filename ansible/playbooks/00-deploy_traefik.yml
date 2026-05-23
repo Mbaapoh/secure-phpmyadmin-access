@@ -1,0 +1,23 @@
+---
+- name: Deploy Edge Gateway (Traefik)
+  hosts: nginx_edge
+  gather_facts: yes
+  become: yes
+
+  vars_files:
+    - ../group_vars/all/vars.yml
+    - ../group_vars/all/vault.yml
+
+  pre_tasks:
+    - name: Install System Python Packages
+      apt:
+        name:
+          - python3-pip
+          - python3-docker
+        state: present
+        update_cache: yes
+      when: ansible_os_family == "Debian"
+
+  roles:
+    - role: deploy_traefik
+      when: edge_gateway_type == 'traefik'

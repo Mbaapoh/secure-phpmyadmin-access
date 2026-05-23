@@ -1,0 +1,23 @@
+---
+- name: Deploy Application (Microcks)
+  hosts: app_microcks
+  become: yes
+  vars_files:
+    - ../group_vars/all/vars.yml
+    - ../group_vars/all/vault.yml
+
+  tasks:
+    - name: Gathering Facts
+      setup:
+
+    - name: Install System Python Packages
+      ansible.builtin.apt:
+        name:
+          - python3-docker
+          - python3-requests
+        state: present
+        update_cache: yes
+      when: ansible_os_family == 'Debian'
+
+  roles:
+    - ../roles/deploy_microcks
