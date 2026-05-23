@@ -24,11 +24,13 @@ Contains the code, pipelines, and specs that run *on* the deployed infrastructur
    ```
 2. Run any playbook you need! To spin up the foundational routing and identity layer:
    ```bash
-   ansible-playbook playbooks/deploy_traefik.yml --vault-password-file ../.vault_pass
-   ansible-playbook playbooks/deploy_keycloak.yml --vault-password-file ../.vault_pass
+   ansible-playbook playbooks/00-deploy_traefik.yml --vault-password-file ../.vault_pass
+   ansible-playbook playbooks/01-deploy_keycloak.yml --vault-password-file ../.vault_pass
    ```
 3. To spin up specific tool platforms:
    ```bash
-   ansible-playbook playbooks/deploy_microcks.yml --vault-password-file ../.vault_pass
-   ansible-playbook playbooks/deploy_jenkins.yml --vault-password-file ../.vault_pass
+   ansible-playbook playbooks/02-deploy_jenkins.yml --vault-password-file ../.vault_pass
+   ansible-playbook playbooks/03-deploy_microcks.yml --vault-password-file ../.vault_pass
+   ansible-playbook playbooks/04-deploy_oauth2proxy.yml --vault-password-file ../.vault_pass
+   ansible-playbook playbooks/05-deploy_pma.yml --vault-password-file ../.vault_pass
    ```
