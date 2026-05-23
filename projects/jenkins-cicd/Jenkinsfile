@@ -5,11 +5,11 @@ pipeline {
             steps {
                 microcksImport(
                     server: 'microcks-cloud',
-                    specificationFiles: '02-microcks-api-mocking/project/api-specs/mtn-momo-collections-v1.yaml:true'
+                    specificationFiles: 'projects/api-mocking/api-specs/mtn-momo-collections-v1.yaml:true'
                 )
                 microcksImport(
                     server: 'microcks-cloud',
-                    specificationFiles: '02-microcks-api-mocking/project/api-specs/cart-api.yaml:true'
+                    specificationFiles: 'projects/api-mocking/api-specs/cart-api.yaml:true'
                 )
             }
         }

@@ -1,35 +1,34 @@
 # DevSecOps Reference Architecture Showcase
 
-Welcome to the Fintech DevSecOps Showcase Repository! This repository is organized using a **Strictly Modular Composable Architecture**. 
-
-Every DevSecOps tool (Jenkins, Microcks, Keycloak, etc.) is its own completely independent showcase. You can mix and match these modules to build your perfect platform!
+Welcome to the Fintech DevSecOps Showcase Repository! This repository demonstrates a highly scalable, modular infrastructure. It features a **Centralized Ansible Control Plane** governing isolated application projects.
 
 ## 📁 Repository Structure
 
-Inside every module, you will find a clean split:
-* `/ansible/`: The Infrastructure as Code to deploy the tool.
-* `/project/`: (If applicable) The source code, API specs, or Jenkinsfiles that run on that tool.
+### `/ansible` (The Control Plane)
+Contains all infrastructure-as-code for the platform. This serves as the single source of truth for your entire cluster.
+* `/ansible/inventory/`: The unified inventory file.
+* `/ansible/group_vars/`: The unified secrets and variables.
+* `/ansible/roles/`: All isolated roles (`deploy_traefik`, `deploy_keycloak`, `deploy_microcks`, `deploy_jenkins`, etc.).
+* `/ansible/playbooks/`: Individual deployment playbooks. 
 
-### [00-foundational-platform](./00-foundational-platform)
-The "Master Project". It provides Edge Routing (Traefik) and Centralized Identity (Keycloak). **Start here.** All other showcases plug into this master network and SSO realm.
+### `/projects` (The Application Plane)
+Contains the code, pipelines, and specs that run *on* the deployed infrastructure.
+* `/projects/api-mocking/`: Contains the OpenAPI specs for Microcks.
+* `/projects/jenkins-cicd/`: Contains Jenkinsfiles and your Jenkins Shared Library.
+* `/projects/secure-phpmyadmin-access/`: An isolated demo project showing how to protect a legacy web app with OAuth2-Proxy.
 
-### [01-secure-access-gateway](./01-secure-access-gateway)
-Demonstrates how to use an Identity Aware Proxy (OAuth2-Proxy) to protect legacy, public-facing applications (like phpMyAdmin) without touching their code.
-
-### [02-microcks-api-mocking](./02-microcks-api-mocking)
-Demonstrates Stateful API Mocking. Contains the OpenAPI specs in the `project/` folder.
-
-### [03-jenkins-cicd-platform](./03-jenkins-cicd-platform)
-Demonstrates a central Jenkins CI/CD platform using Configuration as Code (JCasC). You can run the pipeline (located in the `project/` folder) to sync the Microcks APIs! This will also house the Jenkins Shared Library.
-
-### [04-sonarqube-inspection](./04-sonarqube-inspection)
-*(Coming Soon)* Continuous code quality and security scanning module.
-
-## 🚀 How to Use
-To run a showcase:
-1. `cd` into the showcase's `ansible` directory (e.g., `cd 01-secure-access-gateway/ansible`).
-2. Review the `inventory/` and `group_vars/` configurations.
-3. Run the playbook locally:
+## 🚀 How to Deploy
+1. Navigate to the `ansible` directory:
    ```bash
-   ansible-playbook playbooks/<playbook_name>.yml --vault-password-file ../../.vault_pass
+   cd ansible
+   ```
+2. Run any playbook you need! To spin up the foundational routing and identity layer:
+   ```bash
+   ansible-playbook playbooks/deploy_traefik.yml --vault-password-file ../.vault_pass
+   ansible-playbook playbooks/deploy_keycloak.yml --vault-password-file ../.vault_pass
+   ```
+3. To spin up specific tool platforms:
+   ```bash
+   ansible-playbook playbooks/deploy_microcks.yml --vault-password-file ../.vault_pass
+   ansible-playbook playbooks/deploy_jenkins.yml --vault-password-file ../.vault_pass
    ```
