@@ -84,9 +84,9 @@ jobs:
         }
       }
       
-      ['identity-service', 'ledger-api', 'customer-web', 'payment-gateway'].each { service ->
-        pipelineJob("showcase-${service}") {
-          description("SonarQube Inspection Pipeline for ${service}")
+      ['identity-service', 'ledger-api', 'customer-web', 'payment-gateway'].each { serviceName ->
+        pipelineJob('showcase-' + serviceName) {
+          description('SonarQube Inspection Pipeline for ' + serviceName)
           definition {
             cpsScm {
               scm {
@@ -95,7 +95,7 @@ jobs:
                   branch('feature/stateful-mocking')
                 }
               }
-              scriptPath("projects/fintech-showcase-services/${service}/Jenkinsfile")
+              scriptPath('projects/fintech-showcase-services/' + serviceName + '/Jenkinsfile')
             }
           }
           triggers {
