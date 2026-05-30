@@ -1,0 +1,4 @@
+---
+# Traefik Gateway Deployment Configurations
+traefik_network: "fintech-net"
+traefik_certresolver: "myresolver"

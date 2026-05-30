@@ -1,11 +1,12 @@
 ---
-- name: Deploy Continuous Inspection Platform (SonarQube)
-  hosts: app_sonarqube
+- name: Deploy Application (phpMyAdmin)
+  hosts: app_pma
   gather_facts: yes
   become: yes
 
   vars_files:
-    - ../group_vars/all/vars.yml
+    - ../group_vars/all/common.yml
+    - ../group_vars/all/deploy_pma.yml
     - ../group_vars/all/vault.yml
 
   pre_tasks:
@@ -19,4 +20,4 @@
       when: ansible_os_family == "Debian"
 
   roles:
-    - deploy_sonarqube
+    - role: deploy_pma

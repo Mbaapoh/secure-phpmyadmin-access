@@ -3,8 +3,9 @@
   hosts: app_jenkins
   become: yes
   vars_files:
-    - ../group_vars/all/vars.yml
+    - ../group_vars/all/common.yml
     - ../group_vars/all/vault.yml
+    - ../group_vars/all/deploy_jenkins.yml
 
   tasks:
     - name: Gathering Facts
@@ -20,4 +21,4 @@
       when: ansible_os_family == 'Debian'
 
   roles:
-    - ../roles/deploy_jenkins
+    - role: deploy_jenkins

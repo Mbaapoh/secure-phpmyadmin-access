@@ -1,0 +1,25 @@
+---
+# =============================================================================
+# CONFIGURE MICROCKS PLAYBOOK
+# Purpose: Post-deploy health verification and Keycloak integration check for
+#          Microcks. Confirms the service is reachable and the microcks realm
+#          OIDC discovery endpoint is live.
+#
+# NOTE: User/role provisioning is split across:
+#   - microcks realm (internal mock management):  deploy_keycloak role
+#                                                  (microcks-realm.json.j2 import)
+#   - infrastructure realm (gateway access):       configure_keycloak_rbac playbook
+#                                                  (rbac_setup.py.j2 script)
+# =============================================================================
+- name: "Configure Microcks - Health Check & Keycloak Integration Verification"
+  hosts: app_microcks
+  become: yes
+  gather_facts: false
+  vars_files:
+    - ../group_vars/all/common.yml
+    - ../group_vars/all/vault.yml
+    - ../group_vars/all/configure_microcks.yml
+  vars:
+    kc_url: "http://localhost:8080"
+  roles:
+    - role: configure_microcks

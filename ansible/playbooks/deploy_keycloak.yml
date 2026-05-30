@@ -1,12 +1,13 @@
 ---
-- name: Deploy Edge Gateway (Nginx)
-  hosts: nginx_edge
+- name: Deploy IAM Identity Provider (Keycloak)
+  hosts: iam_keycloak
   gather_facts: yes
   become: yes
 
   vars_files:
-    - ../group_vars/all/vars.yml
+    - ../group_vars/all/common.yml
     - ../group_vars/all/vault.yml
+    - ../group_vars/all/deploy_keycloak.yml
 
   pre_tasks:
     - name: Install System Python Packages
@@ -16,8 +17,7 @@
           - python3-docker
         state: present
         update_cache: yes
-      when: ansible_os_family == "Debian" and nginx_deploy_mode == "compose"
+      when: ansible_os_family == "Debian"
 
   roles:
-    - role: deploy_nginx
-      when: edge_gateway_type == 'nginx'
+    - role: deploy_keycloak

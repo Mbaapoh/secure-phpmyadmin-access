@@ -1,12 +1,13 @@
 ---
-- name: Deploy Centralized Auth Gateway (OAuth2-Proxy)
-  hosts: oauth2_proxy
+- name: Deploy Edge Gateway (Traefik)
+  hosts: nginx_edge
   gather_facts: yes
   become: yes
 
   vars_files:
-    - ../group_vars/all/vars.yml
+    - ../group_vars/all/common.yml
     - ../group_vars/all/vault.yml
+    - ../group_vars/all/deploy_traefik.yml
 
   pre_tasks:
     - name: Install System Python Packages
@@ -19,4 +20,5 @@
       when: ansible_os_family == "Debian"
 
   roles:
-    - deploy_oauth2proxy
+    - role: deploy_traefik
+      when: edge_gateway_type == 'traefik'

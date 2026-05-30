@@ -10,7 +10,14 @@ services:
       OAUTH2_PROXY_CODE_CHALLENGE_METHOD: "S256"
       OAUTH2_PROXY_OIDC_ISSUER_URL: https://{{ auth_url }}/realms/{{ keycloak_realm }} 
       OAUTH2_PROXY_EMAIL_DOMAINS: "*"
-      OAUTH2_PROXY_REDIRECT_URL: https://{{ pma_url }}/oauth2/callback
+      OAUTH2_PROXY_SCOPE: "openid email profile roles"
+      # OAUTH2_PROXY_REDIRECT_URL is intentionally NOT set here.
+      # When unset, OAuth2-Proxy dynamically builds the callback URL from the
+      # X-Forwarded-Host header sent by Nginx, enabling ONE proxy to serve
+      # multiple domains (pma / jenkins / sonar / etc.) correctly.
+      # Each site's Nginx block MUST pass: proxy_set_header Host $host;
+      OAUTH2_PROXY_WHITELIST_DOMAINS: ".{{ domain_base }}"
+      OAUTH2_PROXY_SET_XAUTHREQUEST: "true"
       OAUTH2_PROXY_REVERSE_PROXY: "true"
       OAUTH2_PROXY_COOKIE_SECURE: "true"
       OAUTH2_PROXY_COOKIE_SAMESITE: "lax"
@@ -21,12 +28,17 @@ services:
       OAUTH2_PROXY_INSECURE_OIDC_ALLOW_UNVERIFIED_EMAIL: "true"
       OAUTH2_PROXY_SKIP_PROVIDER_BUTTON: "true"
       OAUTH2_PROXY_SKIP_AUTH_ROUTES: "^/github-webhook"
+      # Allow Jenkins Microcks plugin to authenticate with its service account
+      # Bearer JWT directly — skips the browser OAuth2 redirect flow for API calls.
+      OAUTH2_PROXY_SKIP_JWT_BEARER_TOKENS: "true"
+      OAUTH2_PROXY_EXTRA_JWT_ISSUERS: "https://{{ auth_url }}/realms/{{ keycloak_realm }}=pma-secure-client,https://{{ auth_url }}/realms/microcks=microcks-serviceaccount-test"
     ports:
       - "0.0.0.0:4180:4180"
     labels:
       - "traefik.enable=true"
       - "traefik.docker.network={{ traefik_network }}"
-      - "traefik.http.routers.iam-oauth2-proxy.rule=Host(`{{ pma_url }}`) && PathPrefix(`/oauth2/`)"
+      # Route /oauth2/ from ALL protected subdomains to this single proxy
+      - "traefik.http.routers.iam-oauth2-proxy.rule=(Host(`{{ pma_url }}`) || Host(`{{ jenkins_url }}`) || Host(`{{ sonar_url }}`) || Host(`microcks.{{ domain_base }}`)) && PathPrefix(`/oauth2/`)"
       - "traefik.http.routers.iam-oauth2-proxy.entrypoints=websecure"
       - "traefik.http.routers.iam-oauth2-proxy.tls.certresolver={{ traefik_certresolver }}"
       - "traefik.http.services.iam-oauth2-proxy.loadbalancer.server.port=4180"

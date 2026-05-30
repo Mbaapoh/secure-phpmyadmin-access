@@ -3,8 +3,9 @@
   hosts: app_microcks
   become: yes
   vars_files:
-    - ../group_vars/all/vars.yml
+    - ../group_vars/all/common.yml
     - ../group_vars/all/vault.yml
+    - ../group_vars/all/deploy_microcks.yml
 
   tasks:
     - name: Gathering Facts
@@ -20,4 +21,4 @@
       when: ansible_os_family == 'Debian'
 
   roles:
-    - ../roles/deploy_microcks
+    - role: deploy_microcks

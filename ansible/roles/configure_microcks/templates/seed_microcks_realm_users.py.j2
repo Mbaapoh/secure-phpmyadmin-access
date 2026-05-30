@@ -1,0 +1,88 @@
+"""
+One-shot script to seed mbaapoh and infra_user into the live Keycloak
+microcks realm with microcks-app client roles (user + manager + admin).
+Safe to re-run — uses 409 idempotency.
+"""
+import urllib.request, urllib.parse, json, sys
+
+BASE = "http://localhost:8080"
+KC_PASS = "{{ keycloak_admin_password }}"
+MICROCKS_REALM = "microcks"
+MICROCKS_CLIENT = "microcks-app"
+
+# --- Authenticate to master realm ---
+data = urllib.parse.urlencode({
+    "client_id": "admin-cli", "grant_type": "password",
+    "username": "admin", "password": KC_PASS
+}).encode()
+req = urllib.request.Request(
+    BASE + "/realms/master/protocol/openid-connect/token",
+    data=data, headers={"Content-Type": "application/x-www-form-urlencoded"})
+token = json.loads(urllib.request.urlopen(req).read())["access_token"]
+headers = {"Authorization": "Bearer " + token, "Content-Type": "application/json"}
+
+def api(method, path, body=None):
+    d = json.dumps(body).encode() if body else None
+    req = urllib.request.Request(BASE + path, data=d, headers=headers, method=method)
+    try:
+        resp = urllib.request.urlopen(req)
+        raw = resp.read()
+        return json.loads(raw) if raw else {}
+    except urllib.error.HTTPError as e:
+        if e.code in (201, 204, 409):
+            return {}
+        print(f"  ERROR {e.code} on {method} {path}: {e.read()[:300].decode(errors='ignore')}")
+        return None
+
+# --- Users to seed into microcks realm ---
+users_to_seed = [
+    {"username": "mbaapoh",   "email": "mbaapoh@demo.okay.cm",    "firstName": "Mba",           "lastName": "Apoh",  "password": "Mb_lab+237"},
+    {"username": "infra_user","email": "infra_admin@demo.okay.cm", "firstName": "Infrastructure","lastName": "Admin", "password": "Mb_lab+237"},
+]
+
+# --- Get microcks-app client UUID ---
+clients = api("GET", f"/admin/realms/{MICROCKS_REALM}/clients?clientId={MICROCKS_CLIENT}")
+if not clients:
+    print(f"ERROR: Could not find client '{MICROCKS_CLIENT}' in realm '{MICROCKS_REALM}'")
+    sys.exit(1)
+client_uuid = clients[0]["id"]
+print(f"Found client '{MICROCKS_CLIENT}' with UUID: {client_uuid}")
+
+# --- Get client roles: user, manager, admin ---
+all_client_roles = api("GET", f"/admin/realms/{MICROCKS_REALM}/clients/{client_uuid}/roles")
+role_map = {r["name"]: r for r in (all_client_roles or [])}
+desired_roles = [role_map[r] for r in ["user", "manager", "admin"] if r in role_map]
+print(f"Client roles to assign: {[r['name'] for r in desired_roles]}")
+
+for u in users_to_seed:
+    print(f"\nProcessing user: {u['username']}")
+
+    # Create user (409 = already exists, handled silently)
+    api("POST", f"/admin/realms/{MICROCKS_REALM}/users", {
+        "username": u["username"], "enabled": True, "emailVerified": True,
+        "email": u["email"], "firstName": u["firstName"], "lastName": u["lastName"],
+        "credentials": [{"type": "password", "value": u["password"], "temporary": False}],
+        "requiredActions": []
+    })
+
+    # Fetch user ID
+    res = api("GET", f"/admin/realms/{MICROCKS_REALM}/users?username={u['username']}&exact=true")
+    if not res:
+        print(f"  ERROR: Could not fetch user {u['username']}")
+        continue
+    uid = res[0]["id"]
+    print(f"  User ID: {uid}")
+
+    # Ensure password is set (idempotent reset)
+    api("PUT", f"/admin/realms/{MICROCKS_REALM}/users/{uid}/reset-password", {
+        "type": "password", "value": u["password"], "temporary": False
+    })
+    print(f"  Password set to: {u['password']}")
+
+    # Assign microcks-app client roles
+    api("POST",
+        f"/admin/realms/{MICROCKS_REALM}/users/{uid}/role-mappings/clients/{client_uuid}",
+        desired_roles)
+    print(f"  Assigned client roles: user, manager, admin on '{MICROCKS_CLIENT}'")
+
+print("\nDone — mbaapoh and infra_user are ready in the microcks realm.")

@@ -1,0 +1,13 @@
+---
+- name: Manage Keycloak User Seeding
+  hosts: iam_keycloak
+  gather_facts: no
+  become: yes
+
+  vars_files:
+    - ../group_vars/all/common.yml
+    - ../group_vars/all/configure_keycloak_users.yml
+    - ../group_vars/all/vault.yml
+
+  roles:
+    - role: configure_keycloak_users

@@ -1,0 +1,54 @@
+---
+# =============================================================================
+# configure_microcks/tasks/main.yml
+# Purpose: Post-deploy health verification and Keycloak integration check for
+#          Microcks. User/role provisioning for the microcks realm is handled
+#          declaratively via microcks-realm.json.j2 (imported at Keycloak boot).
+#          Gateway-level role assignment (microcks_access) is handled by the
+#          configure_keycloak_rbac playbook.
+# =============================================================================
+
+- name: Wait for Microcks to be healthy
+  uri:
+    url: "http://localhost:8084/api/health"
+    status_code: 200
+    validate_certs: false
+  register: microcks_health
+  until: microcks_health.status == 200
+  retries: 24
+  delay: 10
+
+- name: Microcks health check passed
+  debug:
+    msg: "Microcks is UP and healthy on port 8084."
+
+- name: Wait for Keycloak microcks realm OIDC discovery endpoint
+  uri:
+    url: "{{ kc_url }}/realms/microcks/.well-known/openid-configuration"
+    status_code: 200
+    validate_certs: false
+  register: microcks_realm_check
+  until: microcks_realm_check.status == 200
+  retries: 12
+  delay: 10
+
+- name: Microcks realm OIDC check passed
+  debug:
+    msg: >-
+      Keycloak 'microcks' realm OIDC discovery is live.
+      issuer={{ microcks_realm_check.json.issuer | default('N/A') }}.
+      Microcks <-> Keycloak auth integration is operational.
+
+- name: Template microcks realm user seeder script to host
+  template:
+    src: seed_microcks_realm_users.py.j2
+    dest: /tmp/seed_microcks_realm_users.py
+    mode: '0700'
+
+- name: Seed mbaapoh and infra_user into microcks realm (idempotent)
+  command: python3 /tmp/seed_microcks_realm_users.py
+  register: microcks_seed_output
+
+- name: Show microcks realm seeding result
+  debug:
+    var: microcks_seed_output.stdout_lines

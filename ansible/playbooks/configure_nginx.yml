@@ -1,0 +1,40 @@
+---
+- name: Configure Edge Gateway (Nginx)
+  hosts: nginx_edge
+  gather_facts: yes
+  become: yes
+
+  vars_files:
+    - ../group_vars/all/common.yml
+    - ../group_vars/all/vault.yml
+    - ../group_vars/all/configure_nginx.yml
+
+  pre_tasks:
+    - name: Create JS directory for static Keycloak assets
+      file:
+        path: /var/www/auth.demo.okay.cm/js
+        state: directory
+        owner: www-data
+        group: www-data
+        mode: '0755'
+
+    - name: Download Keycloak JS Adapter to bridge Keycloak 26 deprecation
+      get_url:
+        url: https://cdn.jsdelivr.net/npm/keycloak-js/dist/keycloak.js
+        dest: /var/www/auth.demo.okay.cm/js/keycloak.js
+        owner: www-data
+        group: www-data
+        mode: '0644'
+
+    - name: Install System Python Packages
+      apt:
+        name:
+          - python3-pip
+          - python3-docker
+        state: present
+        update_cache: yes
+      when: ansible_os_family == "Debian" and nginx_deploy_mode == "compose"
+
+  roles:
+    - role: configure_nginx
+      when: edge_gateway_type == 'nginx'

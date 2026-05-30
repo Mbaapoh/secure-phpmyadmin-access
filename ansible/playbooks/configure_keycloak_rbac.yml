@@ -1,0 +1,31 @@
+---
+# =============================================================================
+# KEYCLOAK RBAC CONFIGURATION PLAYBOOK (Unified Password: Mb_lab+237)
+# Purpose: Configure realm roles/users inside Keycloak, and apply edge routing.
+# =============================================================================
+- name: "Keycloak RBAC - Configure Realm Roles and Users"
+  hosts: iam_keycloak
+  gather_facts: false
+  vars_files:
+    - ../group_vars/all/common.yml
+    - ../group_vars/all/vault.yml
+    - ../group_vars/all/configure_keycloak.yml
+    - ../group_vars/all/configure_keycloak_rbac.yml
+  vars:
+    kc_url: "http://localhost:8080"
+  roles:
+    - role: configure_keycloak_rbac
+
+- name: "Keycloak RBAC - Deploy Nginx Edge Routing"
+  hosts: nginx_edge
+  gather_facts: true
+  vars_files:
+    - ../group_vars/all/common.yml
+    - ../group_vars/all/vault.yml
+    - ../group_vars/all/configure_nginx.yml
+    - ../group_vars/all/configure_keycloak.yml
+    - ../group_vars/all/configure_keycloak_rbac.yml
+  roles:
+    - role: configure_nginx
+      vars:
+        __skip_letsencrypt: false

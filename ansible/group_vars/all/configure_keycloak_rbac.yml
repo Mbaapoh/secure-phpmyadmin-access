@@ -1,0 +1,53 @@
+---
+# Declarative RBAC Configuration for Keycloak
+rbac_roles:
+  - jenkins_access
+  - sonar_access
+  - pma_devops_access
+  - infra_admin
+  - microcks_access
+
+rbac_users:
+  - username: "mbaapoh"
+    email: "mbaapoh@demo.okay.cm"
+    firstName: "Mba"
+    lastName: "Apoh"
+    password: "Mb_lab+237"
+    roles:
+      - pma_devops_access
+      - infra_admin
+      - microcks_access
+
+  - username: "jenkins_user"
+    email: "jenkins_user@demo.okay.cm"
+    firstName: "Jenkins"
+    lastName: "User"
+    password: "Mb_lab+237"
+    roles:
+      - jenkins_access
+
+  - username: "sonar_user"
+    email: "sonar_user@demo.okay.cm"
+    firstName: "Sonar"
+    lastName: "User"
+    password: "Mb_lab+237"
+    roles:
+      - sonar_access
+
+  - username: "multi_user"
+    email: "multi_user@demo.okay.cm"
+    firstName: "Multi"
+    lastName: "ServiceUser"
+    password: "Mb_lab+237"
+    roles:
+      - jenkins_access
+      - sonar_access
+
+  - username: "infra_user"
+    email: "infra_admin@demo.okay.cm"
+    firstName: "Infrastructure"
+    lastName: "Admin"
+    password: "Mb_lab+237"
+    roles:
+      - infra_admin
+      - microcks_access

@@ -1,0 +1,73 @@
+---
+# Nginx Edge Gateway Configuration
+edge_gateway_type: "nginx"
+nginx_deploy_mode: "package"
+
+nginx_revproxy_sites:
+  auth.demo.okay.cm:
+    domains:
+      - "auth.demo.okay.cm"
+    upstreams:
+      - backend_address: "{{ keycloak_backend_ip }}"
+        backend_port: 8080
+    ssl: true
+    letsencrypt: true
+    letsencrypt_email: "{{ email }}"
+    custom_https_server_directives: |
+      location = /js/keycloak.js {
+         alias /var/www/auth.demo.okay.cm/js/keycloak.js;
+         add_header Content-Type application/javascript;
+         add_header Access-Control-Allow-Origin *;
+      }
+
+  pma.demo.okay.cm:
+    domains:
+      - "pma.demo.okay.cm"
+    upstreams:
+      - backend_address: "{{ pma_backend_ip }}"
+        backend_port: 8081
+    ssl: true
+    letsencrypt: true
+    letsencrypt_email: "{{ email }}"
+    oauth2_proxy_auth_enabled: true
+    oauth2_required_roles:
+      - "role:pma_devops_access"
+      - "role:infra_admin"
+
+  jenkins.demo.okay.cm:
+    domains:
+      - "jenkins.demo.okay.cm"
+    upstreams:
+      - backend_address: "127.0.0.1"
+        backend_port: 8082
+    ssl: true
+    letsencrypt: true
+    letsencrypt_email: "{{ email }}"
+    oauth2_proxy_auth_enabled: true
+    oauth2_required_roles:
+      - "role:jenkins_access"
+      - "role:infra_admin"
+
+  sonar.demo.okay.cm:
+    domains:
+      - "sonar.demo.okay.cm"
+    upstreams:
+      - backend_address: "127.0.0.1"
+        backend_port: 9000
+    ssl: true
+    letsencrypt: true
+    letsencrypt_email: "{{ email }}"
+    oauth2_proxy_auth_enabled: true
+    oauth2_required_roles:
+      - "role:sonar_access"
+      - "role:infra_admin"
+
+  microcks.demo.okay.cm:
+    domains:
+      - "microcks.demo.okay.cm"
+    upstreams:
+      - backend_address: "127.0.0.1"
+        backend_port: 8084
+    ssl: true
+    letsencrypt: true
+    letsencrypt_email: "{{ email }}"

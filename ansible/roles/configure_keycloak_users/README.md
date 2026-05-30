@@ -7,7 +7,7 @@ This role allows you to quickly add, delete, or reset the OTP for a user in Keyc
 Run these commands from the root directory (`/Users/macuser/mbaapoh-devops/secure-phpmyadmin-access`).
 
 ### 1. Declarative Approach (Recommended)
-You can define a list of users in your `group_vars/all/vars.yml` and the role will automatically create and enforce them. This is the true GitOps approach.
+You can define a list of users in your `group_vars/all/configure_keycloak_users.yml` and the role will automatically create and enforce them. This is the true GitOps approach.
 
 Add this list to your variables:
 ```yaml
@@ -25,7 +25,7 @@ keycloak_users:
 ```
 Then simply run:
 ```bash
-ansible-playbook playbooks/manage_user.yml -i inventory/hosts.ini --vault-password-file .vault_pass
+ansible-playbook playbooks/configure_keycloak_users.yml -i inventory/hosts.ini --vault-password-file .vault_pass
 ```
 
 ---
@@ -35,27 +35,27 @@ If you don't want to save the user in code, you can pass variables directly on t
 
 **Add a New User (Requires them to set up Google Authenticator):**
 ```bash
-ansible-playbook playbooks/manage_user.yml -i inventory/hosts.ini --vault-password-file .vault_pass \
+ansible-playbook playbooks/configure_keycloak_users.yml -i inventory/hosts.ini --vault-password-file .vault_pass \
   -e "target_username=johndoe target_password=SuperSecret123! target_email=johndoe@demo.okay.cm target_firstname=John target_lastname=Doe"
 ```
 
 **Add a User Without OTP:**
 If you want to create a service account or simply don't want MFA for a specific user:
 ```bash
-ansible-playbook playbooks/manage_user.yml -i inventory/hosts.ini --vault-password-file .vault_pass \
+ansible-playbook playbooks/configure_keycloak_users.yml -i inventory/hosts.ini --vault-password-file .vault_pass \
   -e "target_username=no_mfa_user target_password=SuperSecret123! require_otp=false"
 ```
 
 **Reset an Existing User's OTP:**
 *(If someone loses their phone, this safely deletes and recreates them, restoring the QR Code prompt).*
 ```bash
-ansible-playbook playbooks/manage_user.yml -i inventory/hosts.ini --vault-password-file .vault_pass \
+ansible-playbook playbooks/configure_keycloak_users.yml -i inventory/hosts.ini --vault-password-file .vault_pass \
   -e "target_username=mbaapoh target_password=NewPassword237! reset_otp=true"
 ```
 
 **Delete a User:**
 ```bash
-ansible-playbook playbooks/manage_user.yml -i inventory/hosts.ini --vault-password-file .vault_pass \
+ansible-playbook playbooks/configure_keycloak_users.yml -i inventory/hosts.ini --vault-password-file .vault_pass \
   -e "target_username=johndoe target_state=absent"
 ```
 

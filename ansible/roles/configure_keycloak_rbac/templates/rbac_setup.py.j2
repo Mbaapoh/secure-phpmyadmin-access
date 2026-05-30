@@ -1,0 +1,72 @@
+import urllib.request, urllib.parse, json
+
+BASE = "{{ kc_url }}"
+REALM = "{{ keycloak_realm }}"
+KC_PASS = "{{ keycloak_admin_password }}"
+
+# Auth
+data = urllib.parse.urlencode({
+    "client_id": "admin-cli", "grant_type": "password",
+    "username": "admin", "password": KC_PASS
+}).encode()
+req = urllib.request.Request(
+    BASE + "/realms/master/protocol/openid-connect/token",
+    data=data, headers={"Content-Type": "application/x-www-form-urlencoded"})
+token = json.loads(urllib.request.urlopen(req).read())["access_token"]
+headers = {"Authorization": "Bearer " + token, "Content-Type": "application/json"}
+
+def api(method, path, body=None):
+    data = json.dumps(body).encode() if body else None
+    req = urllib.request.Request(BASE + path, data=data, headers=headers, method=method)
+    try:
+        resp = urllib.request.urlopen(req)
+        raw = resp.read()
+        return json.loads(raw) if raw else {}
+    except urllib.error.HTTPError as e:
+        if e.code in (204, 409, 201):
+            return {}
+        print(f"ERROR {e.code} on {method} {path}: {e.read()[:200].decode(errors='ignore')}")
+        return None
+
+# 1. Create roles
+roles = {{ rbac_roles | to_json }}
+for r in roles:
+    api("POST", f"/admin/realms/{REALM}/roles", {"name": r, "description": f"Access role for {r}"})
+    print(f"Created role: {r}")
+
+# 2. Create/Update users
+users = {{ rbac_users | to_json }}
+for u in users:
+    user_body = {
+        "username": u["username"], "enabled": True, "emailVerified": True,
+        "email": u["email"], "firstName": u["firstName"], "lastName": u["lastName"],
+        "requiredActions": []
+    }
+    if "password" in u:
+        user_body["credentials"] = [{"type": "password", "value": u["password"], "temporary": False}]
+    
+    # Try to create user
+    api("POST", f"/admin/realms/{REALM}/users", user_body)
+    
+    # Get user ID
+    res = api("GET", f"/admin/realms/{REALM}/users?username={u['username']}&exact=true")
+    if not res:
+        print(f"Error fetching user {u['username']}")
+        continue
+    uid = res[0]["id"]
+    
+    # Force password reset to Mb_lab+237
+    if "password" in u:
+        api("PUT", f"/admin/realms/{REALM}/users/{uid}/reset-password", {
+            "type": "password",
+            "value": u["password"],
+            "temporary": False
+        })
+        print(f"Password reset to '{u['password']}' for user: {u['username']}")
+    
+    # Assign roles
+    for r in u["roles"]:
+        role_obj = api("GET", f"/admin/realms/{REALM}/roles/{r}")
+        if role_obj:
+            api("POST", f"/admin/realms/{REALM}/users/{uid}/role-mappings/realm", [role_obj])
+            print(f"  Assigned role {r} to {u['username']}")

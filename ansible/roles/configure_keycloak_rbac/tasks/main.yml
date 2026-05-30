@@ -1,0 +1,28 @@
+---
+- name: Wait for Keycloak to be available
+  uri:
+    url: "{{ kc_url }}/realms/master"
+    status_code: 200
+  retries: 10
+  delay: 5
+
+- name: Render Keycloak RBAC setup script
+  template:
+    src: rbac_setup.py.j2
+    dest: /tmp/kc_rbac_setup_generated.py
+    mode: '0700'
+  delegate_to: localhost
+
+- name: Copy RBAC setup script to Keycloak host
+  copy:
+    src: /tmp/kc_rbac_setup_generated.py
+    dest: /tmp/kc_rbac_setup_generated.py
+    mode: '0755'
+
+- name: Run Keycloak RBAC setup script
+  command: python3 /tmp/kc_rbac_setup_generated.py
+  register: script_output
+
+- name: Print Keycloak RBAC setup script output
+  debug:
+    var: script_output.stdout_lines

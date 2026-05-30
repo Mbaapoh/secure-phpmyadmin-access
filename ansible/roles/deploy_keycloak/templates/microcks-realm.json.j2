@@ -11,12 +11,38 @@
       "enabled": true,
       "credentials" : [
         { "type" : "password",
-          "value" : "microcks123" }
+          "value" : "Mb_lab+237" }
       ],
       "realmRoles": [],
       "applicationRoles": {
         "realm-management": [ "manage-users", "manage-clients" ],
         "account": [ "manage-account" ],
+        "microcks-app": [ "user", "manager", "admin"]
+      }
+    },
+    {
+      "username" : "{{ mbaapoh_user }}",
+      "enabled": true,
+      "credentials" : [
+        { "type" : "password",
+          "value" : "Mb_lab+237" }
+      ],
+      "realmRoles": [],
+      "applicationRoles": {
+        "realm-management": [ "manage-users", "manage-clients" ],
+        "account": [ "manage-account" ],
+        "microcks-app": [ "user", "manager", "admin"]
+      }
+    },
+    {
+      "username" : "infra_user",
+      "enabled": true,
+      "credentials" : [
+        { "type" : "password",
+          "value" : "Mb_lab+237" }
+      ],
+      "realmRoles": [],
+      "applicationRoles": {
         "microcks-app": [ "user", "manager", "admin"]
       }
     },

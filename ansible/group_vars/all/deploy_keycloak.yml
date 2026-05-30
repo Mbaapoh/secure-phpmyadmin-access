@@ -1,0 +1,4 @@
+---
+# Keycloak Deployment Configurations
+keycloak_version: "26.5.0"
+keycloak_backend_ip: "{{ hostvars[groups['iam_keycloak'][0]]['ansible_host'] | default('127.0.0.1') }}"

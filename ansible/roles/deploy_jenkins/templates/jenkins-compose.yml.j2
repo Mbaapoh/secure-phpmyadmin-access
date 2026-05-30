@@ -22,6 +22,7 @@ services:
       - "traefik.http.routers.jenkins.rule=Host(`{{ jenkins_url }}`)"
       - "traefik.http.routers.jenkins.entrypoints=websecure"
       - "traefik.http.routers.jenkins.tls.certresolver={{ traefik_certresolver }}"
+      - "traefik.http.routers.jenkins.middlewares=iam-oauth2-proxy"
       - "traefik.http.services.jenkins.loadbalancer.server.port=8080"
     networks:
       - {{ traefik_network }}

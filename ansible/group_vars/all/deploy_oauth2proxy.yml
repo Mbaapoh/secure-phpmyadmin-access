@@ -1,0 +1,4 @@
+---
+# OAuth2-Proxy Deployment Configurations
+oauth2_proxy_version: "v7.6.0"
+oauth2proxy_backend_ip: "{{ hostvars[groups['oauth2_proxy'][0]]['ansible_host'] | default('127.0.0.1') }}"

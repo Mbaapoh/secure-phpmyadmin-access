@@ -18,6 +18,7 @@ services:
       - "traefik.http.routers.iam-sonarqube.rule=Host(`{{ sonar_url }}`)"
       - "traefik.http.routers.iam-sonarqube.entrypoints=websecure"
       - "traefik.http.routers.iam-sonarqube.tls.certresolver={{ traefik_certresolver }}"
+      - "traefik.http.routers.iam-sonarqube.middlewares=iam-oauth2-proxy"
       - "traefik.http.services.iam-sonarqube.loadbalancer.server.port=9000"
     networks:
       - sonar_net

@@ -1,0 +1,4 @@
+---
+# phpMyAdmin (PMA) Deployment Configurations
+pma_version: "latest"
+pma_backend_ip: "{{ hostvars[groups['app_pma'][0]]['ansible_host'] | default('127.0.0.1') }}"

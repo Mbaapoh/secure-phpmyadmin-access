@@ -1,0 +1,4 @@
+---
+# Keycloak Realm & Client Configurations
+keycloak_realm: "infrastructure"
+keycloak_client_id: "pma-secure-client"

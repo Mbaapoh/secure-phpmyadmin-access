@@ -1,0 +1,5 @@
+---
+# Jenkins Deployment Configurations
+jenkins_client_id: "jenkins-secure-client"
+jenkins_version: "lts"
+jenkins_backend_ip: "{{ hostvars[groups['app_jenkins'][0]]['ansible_host'] | default('127.0.0.1') }}"

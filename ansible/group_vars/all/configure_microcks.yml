@@ -1,0 +1,6 @@
+---
+# Microcks Post-Deploy Configuration
+# Users who should have microcks_access in the infrastructure realm
+microcks_entitled_users:
+  - "mbaapoh"
+  - "infra_user"

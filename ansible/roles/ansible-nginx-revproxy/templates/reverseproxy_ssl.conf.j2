@@ -130,6 +130,49 @@ server {
    # add_header X-Content-Type-Options "nosniff" always;
    # add_header X-XSS-Protection "1; mode=block" always; # This header is deprecated; X-Content-Type-Options is preferred
 
+    # --- OAuth2-Proxy Integration Routes ---
+    {% if item.value.oauth2_proxy_auth_enabled | default(false) | bool %}
+    location /oauth2/ {
+       proxy_pass http://{{ oauth2proxy_backend_ip | default('127.0.0.1') }}:4180;
+       proxy_set_header Host $host;
+       proxy_set_header X-Real-IP $remote_addr;
+       proxy_set_header X-Scheme $scheme;
+       proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+       proxy_set_header X-Forwarded-Proto $scheme;
+       proxy_set_header X-Auth-Request-Redirect $scheme://$host$request_uri;
+
+       # Large buffers required: Keycloak OIDC JWTs and session cookies exceed Nginx defaults (4k/8k)
+       proxy_buffer_size          128k;
+       proxy_buffers              4 256k;
+       proxy_busy_buffers_size    256k;
+    }
+
+    location = /oauth2/auth {
+       internal;
+       {% set query_params = "" %}
+       {% if item.value.oauth2_required_roles is defined %}
+         {% if item.value.oauth2_required_roles is string %}
+           {% set query_params = "?allowed_groups=" ~ item.value.oauth2_required_roles %}
+         {% else %}
+           {% set query_params = "?allowed_groups=" ~ item.value.oauth2_required_roles | join(',') %}
+         {% endif %}
+       {% endif %}
+
+       proxy_pass http://{{ oauth2proxy_backend_ip | default('127.0.0.1') }}:4180/oauth2/auth{{ query_params }};
+       proxy_set_header Host $host;
+       proxy_set_header X-Real-IP $remote_addr;
+       proxy_set_header X-Scheme $scheme;
+       proxy_pass_request_body off;
+       proxy_set_header Content-Length "";
+
+       # Large buffers required: Keycloak OIDC JWTs exceed Nginx defaults (4k/8k)
+       proxy_buffer_size          128k;
+       proxy_buffers              4 256k;
+       proxy_busy_buffers_size    256k;
+    }
+    {% endif %}
+    # --- End OAuth2-Proxy Integration Routes ---
+
    # ACME challenge location (can also be served over HTTPS if LE client tries after redirect)
    location /.well-known/acme-challenge/ {
       root /var/www/{{ item.key }};
@@ -199,7 +242,17 @@ server {
     fastcgi_read_timeout {{ item.value.fastcgi_read_timeout | default(nginx_fastcgi_read_timeout | default(300)) }}s;
     proxy_pass {{ item.value.backend_protocol | default('http') }}://{{ item.key | replace('.', '_') }}_backend;
 
-    {% if item.value.auth is defined %}
+    {% if item.value.oauth2_proxy_auth_enabled | default(false) | bool %}
+    # Protect with Keycloak + Dynamic OAuth2-Proxy subrequests
+    auth_request /oauth2/auth;
+    error_page 401 = /oauth2/sign_in;
+
+    # Forward user data headers back to the app if authorized
+    auth_request_set $user $upstream_http_x_auth_request_user;
+    auth_request_set $email $upstream_http_x_auth_request_email;
+    proxy_set_header X-User $user;
+    proxy_set_header X-Email $email;
+    {% elif item.value.auth is defined %}
     auth_basic "Restricted Content";
     auth_basic_user_file "/etc/nginx/{{ item.key | replace('.', '_') }}_htpasswd";
     {% endif %}

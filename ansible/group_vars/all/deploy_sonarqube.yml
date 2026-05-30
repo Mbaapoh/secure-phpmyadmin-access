@@ -1,0 +1,5 @@
+---
+# SonarQube Deployment Configurations
+sonar_url: "sonar.{{ domain_base }}"
+sonar_db_password: "sonar_maviance_secure"
+sonar_jenkins_token: "squ_0471f5b4acb95f007c25ff2eaf4ed1e8f915a1d9"

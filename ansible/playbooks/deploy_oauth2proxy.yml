@@ -1,11 +1,12 @@
 ---
-- name: Deploy IAM Identity Provider (Keycloak)
-  hosts: iam_keycloak
+- name: Deploy Centralized Auth Gateway (OAuth2-Proxy)
+  hosts: oauth2_proxy
   gather_facts: yes
   become: yes
 
   vars_files:
-    - ../group_vars/all/vars.yml
+    - ../group_vars/all/common.yml
+    - ../group_vars/all/deploy_oauth2proxy.yml
     - ../group_vars/all/vault.yml
 
   pre_tasks:
@@ -19,5 +20,4 @@
       when: ansible_os_family == "Debian"
 
   roles:
-    - deploy_keycloak
-    - keycloak_config
+    - role: deploy_oauth2proxy

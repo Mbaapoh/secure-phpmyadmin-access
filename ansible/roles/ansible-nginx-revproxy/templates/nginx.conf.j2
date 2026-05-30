@@ -134,6 +134,13 @@ http {
         ''      close;
     }
 
+    # --- Dynamic X-Frame-Options map to prevent OIDC framing blocks ---
+    map $host $x_frame_options {
+        hostnames;
+        default "SAMEORIGIN";
+        auth.{{ domain_base }} "";
+    }
+
     # --- Include Site Configurations ---
     # These will inherit the http block settings, can override or add more specific headers.
     include /etc/nginx/conf.d/*.conf;

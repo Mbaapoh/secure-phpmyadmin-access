@@ -45,6 +45,9 @@
     service_accounts_enabled: true
     redirect_uris:
       - "https://{{ pma_url }}/oauth2/callback"
+      - "https://{{ jenkins_url }}/oauth2/callback"
+      - "https://{{ sonar_url }}/oauth2/callback"
+      - "https://microcks.{{ domain_base }}/oauth2/callback"
     web_origins:
       - "+"
     protocol_mappers:

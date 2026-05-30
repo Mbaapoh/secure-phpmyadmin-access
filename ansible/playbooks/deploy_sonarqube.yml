@@ -1,11 +1,12 @@
 ---
-- name: Deploy Edge Gateway (Traefik)
-  hosts: nginx_edge
+- name: Deploy Continuous Inspection Platform (SonarQube)
+  hosts: app_sonarqube
   gather_facts: yes
   become: yes
 
   vars_files:
-    - ../group_vars/all/vars.yml
+    - ../group_vars/all/common.yml
+    - ../group_vars/all/deploy_sonarqube.yml
     - ../group_vars/all/vault.yml
 
   pre_tasks:
@@ -19,5 +20,4 @@
       when: ansible_os_family == "Debian"
 
   roles:
-    - role: deploy_traefik
-      when: edge_gateway_type == 'traefik'
+    - role: deploy_sonarqube

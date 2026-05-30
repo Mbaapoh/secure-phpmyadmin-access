@@ -34,6 +34,8 @@ services:
       - JAVA_OPTIONS=-Dspring.security.oauth2.resourceserver.jwt.issuer-uri=https://{{ auth_url }}/realms/microcks -Dspring.security.oauth2.resourceserver.jwt.jwk-set-uri=https://{{ auth_url }}/realms/microcks/protocol/openid-connect/certs
     volumes:
       - microcks-data:/data
+    ports:
+      - "127.0.0.1:8084:8080"
     networks:
       - "{{ traefik_network }}"
     labels:
@@ -41,6 +43,7 @@ services:
       - "traefik.http.routers.microcks.rule=Host(`microcks.{{ domain_base }}`)"
       - "traefik.http.routers.microcks.entrypoints=websecure"
       - "traefik.http.routers.microcks.tls.certresolver={{ traefik_certresolver }}"
+      - "traefik.http.routers.microcks.middlewares=iam-oauth2-proxy"
       - "traefik.http.services.microcks.loadbalancer.server.port=8080"
 
 volumes:
